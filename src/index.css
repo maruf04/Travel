@@ -16,23 +16,9 @@ ul { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
 li a { display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:8px; color:var(--text); text-decoration:none; }
 li a:hover { border-color:var(--accent); }
 .error { color:#d33; }
-.map-layout {
-  display: flex;
-  flex-wrap: wrap;      /* stacks on phones, side by side on wide screens */
-  gap: 12px;
-  align-items: flex-start;
-}
-.map-main {
-  flex: 1 1 480px;      /* too wide for a phone, so it wraps to its own row */
-  min-width: 0;
-  width: 100%;
-}
-.map-side {
-  flex: 0 0 340px;
-  max-width: 100%;
-  overflow-y: auto;
-  box-sizing: border-box;
-}
+.map-layout { display: flex; gap: 12px; align-items: flex-start; }
+.map-main { flex: 1; min-width: 0; }
+.map-side { width: 280px; flex: none; overflow-y: auto; }
 @media (max-width: 800px) {
   .map-layout { flex-direction: column; }
   .map-side { width: 100%; max-height: none !important; }
