@@ -4,7 +4,12 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/globe.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>vlogger-map</title>
+    <title>Vlogger World Tracker</title>
+    <!-- apply the saved theme before anything paints, so there is no white flash -->
+    <script>
+      try { document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark' }
+      catch { document.documentElement.dataset.theme = 'dark' }
+    </script>
   </head>
   <body>
     <div id="root"></div>

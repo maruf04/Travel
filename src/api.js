@@ -1,18 +1,47 @@
-import { MOCK_VLOGGERS, MOCK_STOPS } from './data'
+import { countryName } from './countries'
 
-// Set VITE_API_URL=http://localhost:4000 in a .env file to use the real backend.
-const BASE = import.meta.env.VITE_API_URL
+// All data lives in public/data/ as static JSON, so GitHub Pages can serve it:
+//   categories.json        topics (travel, history, ...) with colour and icon
+//   channels.json          YouTube channels
+//   videos/<category>.json videos whose main topic is that category
+// A video's `categories` may list several topics; it is stored in the file of the first one.
+const BASE = import.meta.env.BASE_URL + 'data/'
 
-async function get(path) {
-  const res = await fetch(BASE + path)
-  if (!res.ok) throw new Error('Request failed: ' + res.status)
-  return res.json()
+const cache = new Map()
+function get(path) {
+  if (!cache.has(path)) {
+    const p = fetch(BASE + path).then((res) => {
+      if (!res.ok) throw new Error(`Could not load ${path} (${res.status})`)
+      return res.json()
+    })
+    p.catch(() => cache.delete(path)) // allow a retry after a failed request
+    cache.set(path, p)
+  }
+  return cache.get(path)
 }
 
-export async function getVloggers() {
-  return BASE ? get('/api/vloggers') : MOCK_VLOGGERS
+export const getCategories = () => get('categories.json')
+export const getChannels = () => get('channels.json')
+
+export async function getVideos(categoryIds) {
+  const lists = await Promise.all(categoryIds.map((id) => get(`videos/${id}.json`)))
+  const seen = new Set()
+  return lists.flat().filter((v) => !seen.has(v.id) && seen.add(v.id))
 }
 
-export async function getStops(vloggerId) {
-  return BASE ? get(`/api/vloggers/${vloggerId}/stops`) : MOCK_STOPS[vloggerId] || []
+// The map and sidebar work with flat "stops": one per video, pinned at its place.
+// Videos without a place are skipped for now (they will be shown by country shading later).
+export function toStops(videos) {
+  return videos
+    .filter((v) => v.place && v.place.lat != null)
+    .map((v) => ({
+      id: v.id,
+      place: v.place.name,
+      country: countryName(v.countries[0]),
+      lat: v.place.lat,
+      lng: v.place.lng,
+      title: v.title,
+      url: 'https://www.youtube.com/watch?v=' + v.id,
+      categories: v.categories,
+    }))
 }

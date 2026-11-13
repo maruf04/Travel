@@ -1,0 +1,32 @@
+[
+  {
+    "id": "travel",
+    "name": "Travel",
+    "icon": "✈️",
+    "color": "#ff7a50"
+  },
+  {
+    "id": "history",
+    "name": "History",
+    "icon": "🏛️",
+    "color": "#e8b04b"
+  },
+  {
+    "id": "geopolitics",
+    "name": "Geopolitics",
+    "icon": "🌐",
+    "color": "#ef5b6b"
+  },
+  {
+    "id": "invention",
+    "name": "Invention",
+    "icon": "💡",
+    "color": "#4ba3f0"
+  },
+  {
+    "id": "culture",
+    "name": "Culture",
+    "icon": "🎭",
+    "color": "#b07cf0"
+  }
+]

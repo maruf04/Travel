@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { groupByCountry } from './groupByCountry'
-import { flagUrl } from './countryFlags'
+import { flagUrl } from './countries'
 
 function videoId(url) {
   try {

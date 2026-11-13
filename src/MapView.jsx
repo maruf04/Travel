@@ -3,7 +3,17 @@ import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { groupByCountry } from './groupByCountry'
-import { flagUrl } from './countryFlags'
+import { flagUrl } from './countries'
+
+// Esri "Canvas" basemaps: muted gray styles, no API key needed. A base layer plus a
+// transparent labels layer on top. (CARTO's dark tiles now require an API key.)
+const esri = (name) =>
+  `https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/${name}/MapServer/tile/{z}/{y}/{x}`
+const TILES = {
+  dark: { base: esri('World_Dark_Gray_Base'), labels: esri('World_Dark_Gray_Reference') },
+  light: { base: esri('World_Light_Gray_Base'), labels: esri('World_Light_Gray_Reference') },
+}
+const ATTRIBUTION = 'Tiles &copy; <a href="https://www.esri.com">Esri</a> — Esri, HERE, Garmin, &copy; OpenStreetMap contributors'
 
 /* ---------- helpers ---------- */
 
@@ -213,10 +223,7 @@ function Markers({ groups, selected, setSelected, onPlay }) {
       )}
       {selected &&
         createPortal(
-          <button
-            onClick={close}
-            style={{ position: 'absolute', top: 12, right: 12, zIndex: 1000, padding: '6px 12px', cursor: 'pointer' }}
-          >
+          <button className="map-back" onClick={close}>
             ← All countries
           </button>,
           map.getContainer()
@@ -238,6 +245,7 @@ export default function MapView({
   playing,
   onPlay,
   focusCity,
+  theme = 'dark',
 }) {
   const closeVideo = useCallback(() => onPlay(null), [onPlay])
   const groups = useMemo(() => groupByCountry(stops, minVideos), [stops, minVideos])
@@ -258,10 +266,9 @@ export default function MapView({
       className="map"
       style={{ height: mapHeight, width: '100%' }}
     >
-      <TileLayer
-        attribution="&copy; OpenStreetMap contributors"
-        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      {/* key forces a fresh layer when the theme changes */}
+      <TileLayer key={theme} attribution={ATTRIBUTION} url={(TILES[theme] || TILES.dark).base} maxNativeZoom={16} />
+      <TileLayer key={theme + '-labels'} url={(TILES[theme] || TILES.dark).labels} maxNativeZoom={16} />
       <FocusCity focusCity={focusCity} />
       <FitToStops stops={stops} />
       <Markers groups={groups} selected={selectedCountry} setSelected={onSelectCountry} onPlay={onPlay} />

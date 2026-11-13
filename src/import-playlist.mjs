@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 
-// Use the same country names as countryFlags.js so flags and grouping match.
+// Same names as src/countries.js. (This script still writes the old format; it will be updated to write public/data/videos/*.json.)
 const NAME_OVERRIDES = {
   TR: 'Türkiye', AE: 'UAE', US: 'USA', MK: 'North Macedonia', GB: 'United Kingdom',
 }
