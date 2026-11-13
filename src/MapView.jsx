@@ -312,7 +312,7 @@ function Markers({ groups, selected, setSelected, onPlay }) {
 // Use the useMapSelection() hook to create the props.
 export default function MapView({
   stops,
-  minVideos = 4,
+  minVideos = 2,
   mapHeight = 'max(520px, 72vh)',
   selectedCountry,
   onSelectCountry,

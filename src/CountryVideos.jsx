@@ -1,9 +1,17 @@
 import { useMemo } from 'react'
 import { flagUrl, EARTH_NAME } from './countries'
+import { channelLogo, formatEra } from './api'
 
 // Sidebar list: every video that mentions one country (pinned or not).
-export default function CountryVideos({ videos, country, playing, onPlay, onLocate, colorOf }) {
-  const list = useMemo(() => videos.filter((v) => v.countryNames.includes(country)), [videos, country])
+export default function CountryVideos({ videos, country, playing, onPlay, onLocate, colorOf, channels = [] }) {
+  // in time order when the videos have years (history), otherwise as stored
+  const list = useMemo(() => {
+    const own = videos.filter((v) => v.countryNames.includes(country))
+    return own.some((v) => v.era)
+      ? own.map((v, i) => [v, i]).sort(([a, i], [b, j]) => (a.era?.from ?? Infinity) - (b.era?.from ?? Infinity) || i - j).map(([v]) => v)
+      : own
+  }, [videos, country])
+  const byId = useMemo(() => Object.fromEntries(channels.map((c) => [c.id, c])), [channels])
   if (!list.length) return <p className="muted">No videos for {country} with these filters.</p>
 
   return (
@@ -31,7 +39,16 @@ export default function CountryVideos({ videos, country, playing, onPlay, onLoca
                 <span>{on ? '● Playing' : '▶'}</span>
               </button>
               <div style={{ minWidth: 0 }}>
+                {v.era && <div className="video-era">🕰️ {formatEra(v.era)}</div>}
                 <div className="video-title" onClick={() => onPlay(v)}>{v.title}</div>
+                {byId[v.channel] && (
+                  <div className="video-channel">
+                    {channelLogo(byId[v.channel]) && (
+                      <img className="channel-logo" src={channelLogo(byId[v.channel])} alt="" width="14" height="14" />
+                    )}
+                    {byId[v.channel].name}
+                  </div>
+                )}
                 {v.place && (
                   <button className="link" onClick={() => onLocate({ lat: v.place.lat, lng: v.place.lng })}>
                     📍 {v.place.name}

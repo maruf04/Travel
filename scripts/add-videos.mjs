@@ -331,7 +331,15 @@ for (const input of inputs) {
 const files = readdirSync(path.join(DATA, 'videos')).filter((f) => f.endsWith('.json'))
 const lists = Object.fromEntries(files.map((f) => [f, readJson('videos/' + f)]))
 const existing = new Map()
-for (const list of Object.values(lists)) for (const v of list) existing.set(v.id, v)
+const fileOf = new Map() // video id -> file it lives in
+for (const [file, list] of Object.entries(lists)) {
+  for (const v of list) {
+    existing.set(v.id, v)
+    fileOf.set(v.id, file)
+  }
+}
+// only files that actually change are written, so hand-edited files keep their formatting
+const changedFiles = new Set()
 
 const seen = new Set()
 const fresh = []
@@ -344,6 +352,7 @@ for (const v of fetched) {
     if (!old.categories.includes(opts.category)) {
       old.categories.push(opts.category)
       retagged++
+      changedFiles.add(fileOf.get(v.id))
     }
   } else {
     fresh.push(v)
@@ -420,8 +429,11 @@ if (opts['dry-run']) {
   console.log('\nDry run: nothing written.')
 } else if (added.length || retagged || newChannels.length) {
   const target = `${opts.category}.json`
-  lists[target] = [...(lists[target] || []), ...added]
-  for (const [file, list] of Object.entries(lists)) writeJson('videos/' + file, list)
-  writeJson('channels.json', channels)
+  if (added.length) {
+    lists[target] = [...(lists[target] || []), ...added]
+    changedFiles.add(target)
+  }
+  for (const file of changedFiles) writeJson('videos/' + file, lists[file])
+  if (newChannels.length) writeJson('channels.json', channels)
   console.log(`\nSaved. Commit public/data and push to publish.`)
 }

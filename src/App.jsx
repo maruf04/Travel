@@ -4,7 +4,7 @@ import CountryVideos from './CountryVideos'
 import Timeline from './Timeline'
 import { useMapSelection } from './useMapSelection'
 import { useTheme } from './useTheme'
-import { getCategories, getChannels, getVideos, getWorld, inEra, toStops } from './api'
+import { getCategories, getChannels, getVideos, getWorld, toStops, channelLogo } from './api'
 import { flagUrl, EARTH_NAME } from './countries'
 
 const MAP_HEIGHT = 'max(520px, 72vh)'
@@ -19,7 +19,9 @@ export default function App() {
   const [world, setWorld] = useState(null)
   const [topic, setTopic] = useState(ALL)
   const [channelId, setChannelId] = useState(ALL)
-  const [era, setEra] = useState(null) // null = whole timeline
+  // The chosen year range, remembered with the topic/channel/country it was chosen for,
+  // so picking another country starts from that country's own full timeline.
+  const [eraChoice, setEraChoice] = useState({ scope: '', range: null })
   const [error, setError] = useState('')
   const sel = useMapSelection() // selected map country, playing video, city to fly to
 
@@ -59,17 +61,45 @@ export default function App() {
 
   // Timeline appears inside a single topic, when some of its visible videos have an era.
   // (Not on "All": narrowing it there would hide every undated travel video.)
-  const eraBounds = useMemo(() => {
-    const dated = inChannel.filter((v) => v.era)
-    if (topic === ALL || !dated.length) return null
-    return [Math.min(...dated.map((v) => v.era.from)), Math.max(...dated.map((v) => v.era.to))]
-  }, [inChannel, topic])
-  const eraActive = era && eraBounds && (era[0] > eraBounds[0] || era[1] < eraBounds[1])
+  // With a country selected, it covers only that country's years and filters only its videos.
+  const eraCountry = sel.selectedCountry
+  const eraScope = `${topic}|${channelId}|${eraCountry || ''}`
+  // The distinct years/periods of the visible videos, one timeline bar each: [{ from, to, count }]
+  const eras = useMemo(() => {
+    if (topic === ALL) return []
+    const byKey = new Map()
+    for (const v of inChannel) {
+      if (!v.era || (eraCountry && !v.countryNames.includes(eraCountry))) continue
+      const key = `${v.era.from}:${v.era.to}`
+      if (!byKey.has(key)) byKey.set(key, { from: v.era.from, to: v.era.to, count: 0 })
+      byKey.get(key).count++
+    }
+    return [...byKey.values()]
+  }, [inChannel, topic, eraCountry])
+  // the clicked bar ([from, to]) or null for all years
+  const era = eraChoice.scope === eraScope ? eraChoice.range : null
+  const setEra = (range) => setEraChoice({ scope: eraScope, range })
 
+  // A clicked bar shows exactly the videos on that bar (with a country picked, only its videos are filtered).
   const filtered = useMemo(
-    () => (eraActive ? inChannel.filter((v) => inEra(v, era)) : inChannel),
-    [inChannel, era, eraActive]
+    () =>
+      era
+        ? inChannel.filter(
+            (v) => (eraCountry && !v.countryNames.includes(eraCountry)) || (v.era && v.era.from === era[0] && v.era.to === era[1])
+          )
+        : inChannel,
+    [inChannel, era, eraCountry]
   )
+  // History tab: a bar under the channel bar lists the countries this channel has videos about.
+  // Clicking one selects it and shows that country's timeline.
+  const isHistory = topic === 'history'
+  const historyCountries = useMemo(() => {
+    if (!isHistory) return []
+    const counts = new Map()
+    for (const v of inChannel) for (const n of v.countryNames) counts.set(n, (counts.get(n) || 0) + 1)
+    return [...counts].sort((a, b) => (b[0] === EARTH_NAME) - (a[0] === EARTH_NAME) || b[1] - a[1])
+  }, [isHistory, inChannel])
+
   const stops = useMemo(() => toStops(filtered, colorOf), [filtered, colorOf])
   const countryCounts = useMemo(() => {
     const counts = {}
@@ -87,13 +117,11 @@ export default function App() {
 
   function chooseTopic(id) {
     setTopic(id)
-    setEra(null)
     // keep the channel if it has videos in the new topic
     if (id !== ALL && !videos.some((v) => v.channel === channelId && v.categories.includes(id))) setChannelId(ALL)
   }
   function chooseChannel(id) {
     setChannelId(id)
-    setEra(null)
   }
   function surprise() {
     if (!filtered.length) return
@@ -145,7 +173,12 @@ export default function App() {
             </button>
             {topicChannels.map((c) => (
               <button key={c.id} className={channelId === c.id ? 'chip on' : 'chip'} onClick={() => chooseChannel(c.id)}>
-                {flagUrl(c.country) && <img src={flagUrl(c.country)} alt="" width="18" height="12" />}
+                {/* the channel's logo if it has one, otherwise its country's flag */}
+                {channelLogo(c) ? (
+                  <img className="channel-logo" src={channelLogo(c)} alt="" width="20" height="20" />
+                ) : (
+                  flagUrl(c.country) && <img src={flagUrl(c.country)} alt="" width="18" height="12" />
+                )}
                 {c.name}
               </button>
             ))}
@@ -154,16 +187,48 @@ export default function App() {
         </section>
       )}
 
-      {eraBounds && eraBounds[1] > eraBounds[0] && (
+      {isHistory && historyCountries.length > 0 && (
+        <section className="panel country-bar">
+          <div className="country-bar-label">🗺️ Countries {channelId === ALL ? 'covered' : `${channelName} covered`}</div>
+          <div className="chips" aria-label="Countries">
+            {historyCountries.map(([name, n]) => (
+              <button
+                key={name}
+                className={eraCountry === name ? 'chip on' : 'chip'}
+                // click again to go back to all countries
+                onClick={() => sel.mapProps.onSelectCountry(eraCountry === name ? null : name)}
+              >
+                {name === EARTH_NAME ? (
+                  <span className="earth-icon" aria-hidden="true">🌍</span>
+                ) : (
+                  flagUrl(name) && <img src={flagUrl(name)} alt="" width="18" height="12" />
+                )}
+                {name === EARTH_NAME ? 'Earth' : name}
+                <span className="count">{n}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* History: the timeline is for the country picked in the bar above; other topics show it for all */}
+      {eras.length > 0 && (!isHistory || eraCountry) && (
         <section className="panel">
           <Timeline
-            key={topic + channelId}
-            min={eraBounds[0]}
-            max={eraBounds[1]}
-            value={era || eraBounds}
-            onChange={setEra}
+            key={eraScope}
+            eras={eras}
+            selected={era}
+            onSelect={setEra}
+            label={eraCountry === EARTH_NAME ? 'Earth (whole world)' : eraCountry}
             color={topicColor}
           />
+        </section>
+      )}
+      {isHistory && eraCountry && eras.length === 0 && (
+        <section className="panel">
+          <p className="muted timeline-note">
+            🕰️ These videos have no years yet. Add <code>"era"</code> to them in history.json to build a timeline.
+          </p>
         </section>
       )}
 
@@ -194,6 +259,7 @@ export default function App() {
                 onPlay={sel.setPlaying}
                 onLocate={sel.setFocusCity}
                 colorOf={colorOf}
+                channels={channels}
               />
             </>
           ) : inTopic.length === 0 && videos.length > 0 ? (

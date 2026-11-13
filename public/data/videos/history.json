@@ -238,5 +238,45 @@
       "from": 1971,
       "to": 1971
     }
+  },
+  {
+    "id": "VGAgUfI64vU",
+    "channel": "labid-rahat",
+    "title": "বখতিয়ার খিলজি কি তাহলে বাংলা শাসন করে নি? Foundation of The Bengal Sultanate | Labid Rahat",
+    "categories": [
+      "history"
+    ],
+    "countries": [
+      "BD"
+    ],
+    "place": {
+      "name": "Bangladesh",
+      "lat": 23.84,
+      "lng": 90.27
+    },
+    "era": {
+      "from": 1200,
+      "to": 1200
+    }
+  },
+  {
+    "id": "jhR6a1Dw3z8",
+    "channel": "labid-rahat",
+    "title": "ব্যর্থ প্রেমিক থেকে পুরা বাংলার প্রথম সুলতান | When the Full Bengal United Under One Ruler | LR",
+    "categories": [
+      "history"
+    ],
+    "countries": [
+      "BD"
+    ],
+    "place": {
+      "name": "Bangladesh",
+      "lat": 23.84,
+      "lng": 90.27
+    },
+    "era": {
+      "from": 1300,
+      "to": 1300
+    }
   }
 ]

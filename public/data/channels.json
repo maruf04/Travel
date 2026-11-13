@@ -16,6 +16,8 @@
     "id": "veritasium",
     "name": "Veritasium",
     "youtubeId": "UCHnyfMqiRRG1u-2MsSQLbXA",
-    "url": "https://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA"
+    "url": "https://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA",
+    "logo": "logos/veritasium.png",
+    "logoCredit": "Derek Muller, Public domain, via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Veritasium_square_logo.png"
   }
 ]

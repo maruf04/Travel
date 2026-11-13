@@ -11,7 +11,28 @@ npm run build    # production build into dist/
 
 ## Adding videos
 
-### From your computer
+### Easiest: answer a few questions
+
+```bash
+npm run entry
+```
+
+It asks whether you're adding one video or a playlist, then for the link and the topic, then only what that topic needs:
+
+| Topic | Questions |
+| --- | --- |
+| Travel | country |
+| History | country, year or period |
+| Geopolitics | countries involved, year or period |
+| Invention | about the whole world? (otherwise which country), year |
+| Culture | country |
+
+- **Countries:** type names in plain words, like `bangladesh, pakistan`. They're converted to codes for you; typos, common names (USA, UK, Burma) and Bangla names work, and `earth` or `world` means the whole world. To check names on their own: `node scripts/country-code.mjs "bangladesh, usa"`.
+- **Years:** `1971`, `1947-1971` or `500BC-300BC`. Leave empty if unknown.
+- **Preview:** it shows what will be added and asks before saving. For a new channel, it also asks which country the channel is from.
+- **Finishing:** it repeats until you say no, then offers to commit and push.
+
+### From your computer (one command)
 
 ```bash
 npm run add -- "https://www.youtube.com/playlist?list=PL..." --category history --countries EG
@@ -45,7 +66,7 @@ All data is static JSON in [`public/data/`](public/data/), so no server or datab
 | File | What it holds |
 | --- | --- |
 | `categories.json` | Topics: travel, history, geopolitics, invention, culture (id, name, icon, colour) |
-| `channels.json` | YouTube channels (`id`, `name`, `country` as ISO code, `url`) |
+| `channels.json` | YouTube channels (`id`, `name`, `country` as ISO code, `url`, optional `logo` and `logoCredit`) |
 | `videos/<category>.json` | Videos whose **main** topic is that category |
 | `world.json` | Country borders for shading ([Natural Earth](https://www.naturalearthdata.com/), public domain) |
 
@@ -65,6 +86,10 @@ One video:
 
 - `id` is the YouTube video ID (the part after `watch?v=`).
 - `channel` must match an `id` in `channels.json`.
+
+**Channel logos:** put the image in `public/logos/` (square, about 128–256 px) and set `"logo": "logos/<file>.png"` on the channel in `channels.json`. A full `https://` URL works too. The logo replaces the country flag on the channel button and appears next to the channel name under each video in the sidebar. Record where the image came from in `logoCredit`.
+
+Credits: Veritasium logo by Derek Muller, public domain, via [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Veritasium_square_logo.png).
 - `categories`: the first one decides which file the video lives in; list more if it fits several.
 - `countries`: ISO 3166 two-letter codes. The first is used for the map pin and flag. Use `"EARTH"` for a video about the whole world (e.g. the history of inventions): it shades the entire map and is listed under "Earth" in the sidebar.
 - `place` is optional. Videos without one still shade their countries and appear in the sidebar.

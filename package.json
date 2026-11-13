@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "add": "node scripts/add-videos.mjs"
+    "add": "node scripts/add-videos.mjs",
+    "entry": "bash scripts/add.sh"
   },
   "dependencies": {
     "leaflet": "^1.9.4",

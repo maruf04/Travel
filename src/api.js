@@ -40,9 +40,6 @@ export async function getVideos(categoryIds) {
     }))
 }
 
-// Does the video's era overlap the [from, to] range?
-export const inEra = (v, [from, to]) => v.era && v.era.from <= to && v.era.to >= from
-
 // The map markers work with flat "stops": one per video that has a place.
 // Videos without a place still count for country shading and the sidebar.
 export function toStops(videos, colorOf) {
@@ -59,3 +56,15 @@ export function toStops(videos, colorOf) {
       color: colorOf(v),
     }))
 }
+
+// A channel's logo: "logo" in channels.json is a file under public/ (e.g. "logos/veritasium.png")
+// or a full https:// URL. Returns null when the channel has none.
+export function channelLogo(channel) {
+  if (!channel?.logo) return null
+  return /^https?:\/\//.test(channel.logo) ? channel.logo : import.meta.env.BASE_URL + channel.logo
+}
+
+// 1971 -> "1971", -500 -> "500 BC"; an era { from, to } -> "1914–1918" (or one year if equal).
+export const formatYear = (y) => (y < 0 ? `${-y} BC` : `${y}`)
+export const formatEra = (era) =>
+  era.from === era.to ? formatYear(era.from) : `${formatYear(era.from)}–${formatYear(era.to)}`
