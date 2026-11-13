@@ -5,7 +5,7 @@ import Timeline from './Timeline'
 import { useMapSelection } from './useMapSelection'
 import { useTheme } from './useTheme'
 import { getCategories, getChannels, getVideos, getWorld, inEra, toStops } from './api'
-import { flagUrl } from './countries'
+import { flagUrl, EARTH_NAME } from './countries'
 
 const MAP_HEIGHT = 'max(520px, 72vh)'
 const ALL = 'all'
@@ -79,7 +79,8 @@ export default function App() {
   const topCountries = useMemo(() => {
     const counts = new Map()
     for (const v of filtered) for (const n of v.countryNames) counts.set(n, (counts.get(n) || 0) + 1)
-    return [...counts].sort((a, b) => b[1] - a[1])
+    // Earth (videos about the whole world) first, then countries by number of videos
+    return [...counts].sort((a, b) => (b[0] === EARTH_NAME) - (a[0] === EARTH_NAME) || b[1] - a[1])
   }, [filtered])
 
   const categoryCount = (id) => videos.filter((v) => v.categories.includes(id)).length
@@ -207,15 +208,19 @@ export default function App() {
             <>
               <h2>{topicName}</h2>
               <p className="muted">
-                {channelName} · {filtered.length} videos · {topCountries.length} countries
+                {channelName} · {filtered.length} videos · {topCountries.filter(([n]) => n !== EARTH_NAME).length} countries
               </p>
               <p className="muted">Click a country on the map, or pick one here:</p>
               <ul className="country-list">
                 {topCountries.map(([name, n]) => (
                   <li key={name}>
                     <button onClick={() => sel.mapProps.onSelectCountry(name)}>
-                      {flagUrl(name) && <img src={flagUrl(name)} alt="" width="20" height="14" />}
-                      <span>{name}</span>
+                      {name === EARTH_NAME ? (
+                        <span className="earth-icon" aria-hidden="true">🌍</span>
+                      ) : (
+                        flagUrl(name) && <img src={flagUrl(name)} alt="" width="20" height="14" />
+                      )}
+                      <span>{name === EARTH_NAME ? 'Earth (whole world)' : name}</span>
                       <span className="count">{n}</span>
                     </button>
                   </li>

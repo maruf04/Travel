@@ -11,5 +11,11 @@
     "youtubeId": "UCTioYLEdlYyj1tyeCrc1bxA",
     "url": "https://www.youtube.com/channel/UCTioYLEdlYyj1tyeCrc1bxA",
     "country": "BD"
+  },
+  {
+    "id": "veritasium",
+    "name": "Veritasium",
+    "youtubeId": "UCHnyfMqiRRG1u-2MsSQLbXA",
+    "url": "https://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA"
   }
 ]

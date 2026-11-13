@@ -16,6 +16,7 @@ npm run build    # production build into dist/
 ```bash
 npm run add -- "https://www.youtube.com/playlist?list=PL..." --category history --countries EG
 npm run add -- https://youtu.be/VIDEO_ID --category geopolitics --era 1914:1918
+npm run add -- <url> --category invention --countries EARTH            # about the whole world
 npm run add -- <url> --category history --era 500BC:300BC --dry-run   # preview only
 npm run add -- --help                                                  # all options
 ```
@@ -65,7 +66,7 @@ One video:
 - `id` is the YouTube video ID (the part after `watch?v=`).
 - `channel` must match an `id` in `channels.json`.
 - `categories`: the first one decides which file the video lives in; list more if it fits several.
-- `countries`: ISO 3166 two-letter codes. The first is used for the map pin and flag.
+- `countries`: ISO 3166 two-letter codes. The first is used for the map pin and flag. Use `"EARTH"` for a video about the whole world (e.g. the history of inventions): it shades the entire map and is listed under "Earth" in the sidebar.
 - `place` is optional. Videos without one still shade their countries and appear in the sidebar.
 - `era` is optional (years, negative for BC). It drives the timeline slider shown inside a topic.
 - `needsReview: true` marks videos whose country couldn't be found. Fill in `countries` and remove the flag.

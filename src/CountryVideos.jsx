@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { flagUrl } from './countries'
+import { flagUrl, EARTH_NAME } from './countries'
 
 // Sidebar list: every video that mentions one country (pinned or not).
 export default function CountryVideos({ videos, country, playing, onPlay, onLocate, colorOf }) {
@@ -9,8 +9,12 @@ export default function CountryVideos({ videos, country, playing, onPlay, onLoca
   return (
     <div>
       <div className="side-title">
-        {flagUrl(country) && <img src={flagUrl(country)} alt="" width="24" height="16" />}
-        {country} · {list.length} {list.length === 1 ? 'video' : 'videos'}
+        {country === EARTH_NAME ? (
+          <span className="earth-icon" aria-hidden="true">🌍</span>
+        ) : (
+          flagUrl(country) && <img src={flagUrl(country)} alt="" width="24" height="16" />
+        )}
+        {country === EARTH_NAME ? 'Earth (whole world)' : country} · {list.length} {list.length === 1 ? 'video' : 'videos'}
       </div>
 
       <div className="video-list">

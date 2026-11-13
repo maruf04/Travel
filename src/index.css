@@ -131,3 +131,4 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
 @media (max-width: 800px) {
   .filters { flex-direction:column; }
 }
+.earth-icon { flex:none; width:20px; text-align:center; font-size:15px; line-height:1; }

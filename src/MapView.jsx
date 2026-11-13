@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Pane, Marker, Popup, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { groupByCountry } from './groupByCountry'
-import { flagUrl, countryName } from './countries'
+import { flagUrl, countryName, EARTH, EARTH_NAME } from './countries'
 
 // Esri "Canvas" basemaps: muted gray styles, no API key needed. A base layer plus a
 // transparent labels layer on top. (CARTO's dark tiles now require an API key.)
@@ -77,7 +77,8 @@ function CountryShading({ world, counts, color, onSelect }) {
 
   useEffect(() => {
     if (!world) return
-    const max = Math.max(1, ...Object.values(counts))
+    // Earth videos are drawn by EarthShading, so they don't set the scale for countries
+    const max = Math.max(1, ...Object.entries(counts).filter(([c]) => c !== EARTH).map(([, n]) => n))
     const strength = (n) => (n ? 0.14 + 0.46 * (Math.log(n + 1) / Math.log(max + 1)) : 0)
     const layer = L.geoJSON(world, {
       style: (f) => {
@@ -100,6 +101,35 @@ function CountryShading({ world, counts, color, onSelect }) {
     }).addTo(map)
     return () => layer.remove()
   }, [world, counts, color, map])
+  return null
+}
+
+// Videos about the whole world ("countries": ["EARTH"]) tint the entire map. The tint sits in
+// its own pane below the country shading, so clicking a shaded country still opens that
+// country, and clicking anywhere else (ocean, unshaded land) opens the Earth list.
+function EarthShading({ count, color, onSelect }) {
+  const map = useMap()
+  const select = useRef(onSelect)
+  useEffect(() => {
+    select.current = onSelect
+  }, [onSelect])
+
+  useEffect(() => {
+    if (!count) return
+    if (!map.getPane('earth')) map.createPane('earth').style.zIndex = 350 // tiles 200 < earth < countries 400
+    // three world-widths wide, so the tint also covers the repeated copies of the map
+    const layer = L.rectangle([[-85, -540], [85, 540]], {
+      pane: 'earth', stroke: false, fillColor: color, fillOpacity: 0.1,
+    })
+      .bindTooltip(`🌍 ${EARTH_NAME} · ${count} ${count === 1 ? 'video' : 'videos'} about the whole world`, { sticky: true })
+      .on({
+        mouseover: () => layer.setStyle({ fillOpacity: 0.16 }),
+        mouseout: () => layer.setStyle({ fillOpacity: 0.1 }),
+        click: () => select.current(EARTH_NAME),
+      })
+      .addTo(map)
+    return () => layer.remove()
+  }, [count, color, map])
   return null
 }
 
@@ -320,6 +350,7 @@ export default function MapView({
       <Pane name="labels" style={{ zIndex: 450, pointerEvents: 'none' }}>
         <TileLayer key={theme + '-labels'} url={(TILES[theme] || TILES.dark).labels} maxNativeZoom={16} />
       </Pane>
+      <EarthShading count={countryCounts[EARTH] || 0} color={shadeColor} onSelect={onSelectCountry} />
       <CountryShading world={world} counts={countryCounts} color={shadeColor} onSelect={onSelectCountry} />
       <FocusCity focusCity={focusCity} />
       <FitToStops stops={stops} fitKey={fitKey} />

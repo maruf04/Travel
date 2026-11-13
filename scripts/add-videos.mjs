@@ -5,7 +5,8 @@
 //
 // Options
 //   --category <id>         travel | history | geopolitics | invention | culture (required)
-//   --countries EG,IQ       used when a title names no country (ISO codes, comma separated)
+//   --countries EG,IQ       used when a title names no country (ISO codes, comma separated).
+//                           Use EARTH for videos about the whole world: they shade the entire map.
 //   --era 1200:1500         set the same era on every video (500BC:300BC for BC years)
 //   --channel-country BD    country of the channel, if it is new
 //   --ai                    let Claude read titles + descriptions and fill countries, era and place
@@ -66,7 +67,7 @@ if (!categories.some((c) => c.id === opts.category)) {
 }
 const codeList = (s) => (s || '').split(/[\s,]+/).filter(Boolean).map((c) => c.toUpperCase())
 const givenCountries = codeList(opts.countries)
-for (const c of givenCountries) if (!/^[A-Z]{2}$/.test(c)) usage(`"${c}" is not a two-letter country code`)
+for (const c of givenCountries) if (!/^[A-Z]{2}$/.test(c) && c !== 'EARTH') usage(`"${c}" is not a two-letter country code (or EARTH)`)
 let givenEra = null
 if (opts.era) {
   // each side: 1453, -500 or 500BC / 500 BCE
@@ -245,6 +246,7 @@ const centroids = (() => {
 
 const geocodeCache = new Map()
 async function countryPin(code) {
+  if (code === 'EARTH') return null // whole-world videos shade the map instead of getting a pin
   if (centroids[code]) return centroids[code]
   if (geocodeCache.has(code)) return geocodeCache.get(code)
   // small countries (Maldives, Singapore, ...) aren't in the borders file: ask OpenStreetMap
@@ -270,7 +272,7 @@ async function tagWithClaude(videos, category) {
   const Tags = z.object({
     videos: z.array(z.object({
       id: z.string(),
-      countries: z.array(z.string()).describe('ISO 3166-1 alpha-2 codes of present-day countries the video is mainly about, most important first'),
+      countries: z.array(z.string()).describe('ISO 3166-1 alpha-2 codes of present-day countries the video is mainly about, most important first. Use ["EARTH"] for a video about the whole world rather than particular countries'),
       era: z.object({ from: z.number(), to: z.number() }).nullable()
         .describe('Historical period covered, in years (negative = BC). null if the video is about the present day'),
       place: z.object({ name: z.string(), lat: z.number(), lng: z.number() }).nullable()
@@ -382,7 +384,7 @@ for (const v of fresh) {
   }
 
   const tags = ai.get(v.id)
-  const valid = (codes) => codes.map((c) => c.toUpperCase()).filter((c) => /^[A-Z]{2}$/.test(c) && display.of(c))
+  const valid = (codes) => codes.map((c) => c.toUpperCase()).filter((c) => c === 'EARTH' || (/^[A-Z]{2}$/.test(c) && display.of(c)))
   const aiCountries = tags ? valid(tags.countries) : []
   const titleCountries = countriesInTitle(v.title)
   const countries = aiCountries.length ? aiCountries : titleCountries.length ? titleCountries : givenCountries
