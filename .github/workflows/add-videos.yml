@@ -1,0 +1,118 @@
+# Add videos from the GitHub website (or the GitHub mobile app):
+# Actions tab -> "Add videos" -> Run workflow -> paste a playlist or video URL, pick a topic.
+# The workflow runs scripts/add-videos.mjs, commits the new data and redeploys the site.
+#
+# Repository secrets (Settings -> Secrets and variables -> Actions):
+#   YT_API_KEY          YouTube Data API key. Recommended: YouTube often blocks yt-dlp on GitHub's servers.
+#   ANTHROPIC_API_KEY   only needed when "Use Claude" is ticked.
+name: Add videos
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: Playlist or video URLs (separate several with spaces)
+        required: true
+      category:
+        description: Topic
+        type: choice
+        options: [travel, history, geopolitics, invention, culture]
+        required: true
+      countries:
+        description: Countries to use when a title names none (ISO codes, e.g. EG,IQ)
+        required: false
+      era:
+        description: Era for all videos (e.g. 1200:1500 or 500BC:300BC)
+        required: false
+      channel_country:
+        description: Channel's country, if it is a new channel (e.g. BD)
+        required: false
+      ai:
+        description: Use Claude to tag countries, era and place
+        type: boolean
+        default: false
+      dry_run:
+        description: Dry run (show what would be added, change nothing)
+        type: boolean
+        default: false
+
+permissions:
+  contents: write # commit the new data
+  actions: write # start the deploy workflow
+
+concurrency:
+  group: add-videos
+  cancel-in-progress: false
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    env:
+      HAS_YT_KEY: ${{ secrets.YT_API_KEY != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install yt-dlp (only used without a YouTube API key)
+        if: env.HAS_YT_KEY != 'true'
+        run: pipx install yt-dlp
+
+      # Inputs are passed through environment variables, never pasted into the script,
+      # so text typed into the form can't run as shell commands.
+      - name: Add videos
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          URLS: ${{ inputs.urls }}
+          CATEGORY: ${{ inputs.category }}
+          COUNTRIES: ${{ inputs.countries }}
+          ERA: ${{ inputs.era }}
+          CHANNEL_COUNTRY: ${{ inputs.channel_country }}
+          AI: ${{ inputs.ai }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        shell: bash # adds pipefail, so a failed import fails the step despite the "| tee"
+        run: |
+          read -ra urls <<< "$URLS"
+          args=(--category "$CATEGORY")
+          [ -n "$COUNTRIES" ] && args+=(--countries "$COUNTRIES")
+          [ -n "$ERA" ] && args+=("--era=$ERA")
+          [ -n "$CHANNEL_COUNTRY" ] && args+=(--channel-country "$CHANNEL_COUNTRY")
+          [ "$AI" = "true" ] && args+=(--ai)
+          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          node scripts/add-videos.mjs "${urls[@]}" "${args[@]}" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit and push
+        id: commit
+        if: ${{ !inputs.dry_run }}
+        env:
+          CATEGORY: ${{ inputs.category }}
+        run: |
+          git add public/data
+          if git diff --cached --quiet; then
+            echo "Nothing new to add."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Add $CATEGORY videos"
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      # A push made with the workflow's own token doesn't trigger other workflows,
+      # so start the deploy explicitly.
+      - name: Deploy the site
+        if: ${{ steps.commit.outputs.changed == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BRANCH: ${{ github.ref_name }}
+        run: gh workflow run deploy.yml --ref "$BRANCH"

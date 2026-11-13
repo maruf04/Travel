@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { MapContainer, TileLayer, Marker, Popup, Tooltip, useMap } from 'react-leaflet'
+import { MapContainer, TileLayer, Pane, Marker, Popup, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { groupByCountry } from './groupByCountry'
-import { flagUrl } from './countries'
+import { flagUrl, countryName } from './countries'
 
 // Esri "Canvas" basemaps: muted gray styles, no API key needed. A base layer plus a
 // transparent labels layer on top. (CARTO's dark tiles now require an API key.)
@@ -28,9 +28,11 @@ function videoId(url) {
 }
 
 // Round flag marker. `count` adds a small number bubble (videos in that country/city).
-const flagIcon = (country, size, count) => {
+// `color` is the topic colour, shown as the ring; white when videos from several topics are mixed.
+const flagIcon = (country, size, count, color) => {
   const url = flagUrl(country)
-  const bg = url ? `#e4572e url(${url}) center/cover` : '#e4572e'
+  const ring = color || '#fff'
+  const bg = url ? `${ring} url(${url}) center/cover` : ring
   const bubble = count > 1
     ? `<span style="position:absolute;right:-6px;bottom:-6px;min-width:18px;height:18px;padding:0 4px;
         box-sizing:border-box;background:#222;color:#fff;border-radius:9px;font:600 11px/18px system-ui;
@@ -39,7 +41,8 @@ const flagIcon = (country, size, count) => {
   return L.divIcon({
     className: '',
     html: `<div style="position:relative;width:${size}px;height:${size}px;border-radius:50%;
-      background:${bg};border:2px solid #fff;box-sizing:border-box;box-shadow:0 1px 4px rgba(0,0,0,.45)">${bubble}</div>`,
+      background:${bg};border:${size > 30 ? 3 : 2.5}px solid ${ring};box-sizing:border-box;
+      box-shadow:0 0 0 1px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.45)">${bubble}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
   })
@@ -47,15 +50,56 @@ const flagIcon = (country, size, count) => {
 
 /* ---------- map internals ---------- */
 
-function FitToStops({ stops }) {
+// Re-fits the view only when `fitKey` changes (topic or channel), not while the
+// timeline slider moves, so the map doesn't jump around under the user.
+function FitToStops({ stops, fitKey }) {
   const map = useMap()
   useEffect(() => {
     if (stops.length) {
-      map.fitBounds(stops.map((s) => [s.lat, s.lng]), { padding: [40, 40], maxZoom: 5 })
+      map.fitBounds(stops.map((x) => [x.lat, x.lng]), { padding: [40, 40], maxZoom: 5 })
     } else {
       map.setView([20, 0], 2)
     }
-  }, [stops, map])
+    // stops are deliberately left out: only a topic/channel change re-fits
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitKey, map])
+  return null
+}
+
+// Shades each country by how many videos mention it (more videos = stronger colour).
+// Covers videos without a pin too, e.g. a geopolitics video about two countries.
+function CountryShading({ world, counts, color, onSelect }) {
+  const map = useMap()
+  const select = useRef(onSelect)
+  useEffect(() => {
+    select.current = onSelect
+  }, [onSelect])
+
+  useEffect(() => {
+    if (!world) return
+    const max = Math.max(1, ...Object.values(counts))
+    const strength = (n) => (n ? 0.14 + 0.46 * (Math.log(n + 1) / Math.log(max + 1)) : 0)
+    const layer = L.geoJSON(world, {
+      style: (f) => {
+        const n = counts[f.properties.code] || 0
+        return { color, weight: n ? 0.8 : 0, opacity: 0.55, fillColor: color, fillOpacity: strength(n), interactive: n > 0 }
+      },
+      onEachFeature: (f, l) => {
+        const n = counts[f.properties.code]
+        if (!n) return
+        l.bindTooltip(`${countryName(f.properties.code)} · ${n} ${n === 1 ? 'video' : 'videos'}`, { sticky: true })
+        l.on({
+          mouseover: () => l.setStyle({ weight: 2, opacity: 1, fillOpacity: Math.min(0.85, strength(n) + 0.18) }),
+          mouseout: () => layer.resetStyle(l),
+          click: () => {
+            select.current(countryName(f.properties.code))
+            map.flyToBounds(l.getBounds(), { padding: [40, 40], maxZoom: 6 })
+          },
+        })
+      },
+    }).addTo(map)
+    return () => layer.remove()
+  }, [world, counts, color, map])
   return null
 }
 
@@ -156,7 +200,7 @@ function CityMarker({ city, country, onPlay, onSelect }) {
   return (
     <Marker
       position={[city.lat, city.lng]}
-      icon={flagIcon(country, 26, city.videos.length)}
+      icon={flagIcon(country, 26, city.videos.length, city.color)}
       // one video: play it right away; several: show a list popup
       eventHandlers={
         many
@@ -214,7 +258,7 @@ function Markers({ groups, selected, setSelected, onPlay }) {
           <Marker
             key={g.country}
             position={[g.lat, g.lng]}
-            icon={flagIcon(g.country, 42, g.videos)}
+            icon={flagIcon(g.country, 42, g.videos, g.color)}
             eventHandlers={{ click: () => open(g) }}
           >
             <Tooltip>{g.country} · {g.videos} videos</Tooltip>
@@ -246,16 +290,20 @@ export default function MapView({
   onPlay,
   focusCity,
   theme = 'dark',
+  fitKey, // changes when topic or channel changes: map resets and re-fits
+  world, // country borders for shading (optional)
+  countryCounts = {}, // { ISO code: number of videos }
+  shadeColor = '#ff7a50',
 }) {
   const closeVideo = useCallback(() => onPlay(null), [onPlay])
   const groups = useMemo(() => groupByCountry(stops, minVideos), [stops, minVideos])
 
-  // switching vlogger -> back to the world view, video closed
+  // switching topic or channel -> back to the world view, video closed
   useEffect(() => {
     onSelectCountry(null)
     onPlay(null)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stops])
+  }, [fitKey])
 
   return (
     <MapContainer
@@ -268,9 +316,13 @@ export default function MapView({
     >
       {/* key forces a fresh layer when the theme changes */}
       <TileLayer key={theme} attribution={ATTRIBUTION} url={(TILES[theme] || TILES.dark).base} maxNativeZoom={16} />
-      <TileLayer key={theme + '-labels'} url={(TILES[theme] || TILES.dark).labels} maxNativeZoom={16} />
+      {/* labels sit above the country shading so names stay readable */}
+      <Pane name="labels" style={{ zIndex: 450, pointerEvents: 'none' }}>
+        <TileLayer key={theme + '-labels'} url={(TILES[theme] || TILES.dark).labels} maxNativeZoom={16} />
+      </Pane>
+      <CountryShading world={world} counts={countryCounts} color={shadeColor} onSelect={onSelectCountry} />
       <FocusCity focusCity={focusCity} />
-      <FitToStops stops={stops} />
+      <FitToStops stops={stops} fitKey={fitKey} />
       <Markers groups={groups} selected={selectedCountry} setSelected={onSelectCountry} onPlay={onPlay} />
       <VideoOverlay video={playing} onClose={closeVideo} />
     </MapContainer>
