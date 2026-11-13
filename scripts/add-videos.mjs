@@ -319,8 +319,9 @@ for (const input of inputs) {
   const target = classify(input)
   console.log(`Fetching ${target.type} ${target.id}…`)
   const list = process.env.YT_API_KEY ? await fetchWithApi(target) : fetchWithYtDlp(target)
-  const watchable = list.filter((v) => v.id && !v.locked && !HIDDEN.has(v.title) && !membersOnly(v.title))
-  if (watchable.length < list.length) console.log(`  skipped ${list.length - watchable.length} private, deleted or members-only`)
+  // a video with no title has been removed or blocked but is still listed in the playlist
+  const watchable = list.filter((v) => v.id && v.title && !v.locked && !HIDDEN.has(v.title) && !membersOnly(v.title))
+  if (watchable.length < list.length) console.log(`  skipped ${list.length - watchable.length} private, deleted, unavailable or members-only`)
   fetched.push(...watchable)
 }
 
