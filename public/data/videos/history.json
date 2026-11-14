@@ -278,5 +278,25 @@
       "from": 1300,
       "to": 1300
     }
+  },
+  {
+    "id": "qDQ2PkVIvyE",
+    "channel": "labid-rahat",
+    "title": "যে বোকামির জন্য পলাশীর যুদ্ধে সিরাজ উদ দৌলা হেরেছিল | Battle of Plassey। Labid Rahat",
+    "categories": [
+      "history"
+    ],
+    "countries": [
+      "BD"
+    ],
+    "place": {
+      "name": "Bangladesh",
+      "lat": 23.84,
+      "lng": 90.27
+    },
+    "era": {
+      "from": 1757,
+      "to": 1757
+    }
   }
 ]

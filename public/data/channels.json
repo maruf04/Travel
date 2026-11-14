@@ -19,5 +19,19 @@
     "url": "https://www.youtube.com/channel/UCHnyfMqiRRG1u-2MsSQLbXA",
     "logo": "logos/veritasium.png",
     "logoCredit": "Derek Muller, Public domain, via Wikimedia Commons: https://commons.wikimedia.org/wiki/File:Veritasium_square_logo.png"
+  },
+  {
+    "id": "johnny-harris",
+    "name": "Johnny Harris",
+    "youtubeId": "UCmGSJVG3mCRXVOP4yZrU1Dw",
+    "url": "https://www.youtube.com/channel/UCmGSJVG3mCRXVOP4yZrU1Dw",
+    "country": "US"
+  },
+  {
+    "id": "eli-from-russia",
+    "name": "Eli from Russia",
+    "youtubeId": "UCc3a1REv31FQzun8yXtXBqw",
+    "url": "https://www.youtube.com/channel/UCc3a1REv31FQzun8yXtXBqw",
+    "country": "RU"
   }
 ]

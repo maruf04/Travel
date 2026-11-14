@@ -1838,5 +1838,181 @@
       "lat": 54.6,
       "lng": -5.93
     }
+  },
+  {
+    "id": "X00rgfID8dI",
+    "channel": "eli-from-russia",
+    "title": "Soviet Union still exists… in THIS country!",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "KG"
+    ],
+    "place": {
+      "name": "Bishkek, Kyrgyzstan",
+      "lat": 42.8761,
+      "lng": 74.6037
+    }
+  },
+  {
+    "id": "wE6EchFozAY",
+    "channel": "eli-from-russia",
+    "title": "Is KAZAKHSTAN the Most Underrated Country in Central Asia? See why!",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "KZ"
+    ],
+    "place": {
+      "name": "Charyn Canyon, Kazakhstan",
+      "lat": 43.325,
+      "lng": 79.0586
+    }
+  },
+  {
+    "id": "n_nNwfyuHeI",
+    "channel": "eli-from-russia",
+    "title": "What do people eat in KAZAKHSTAN?",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "KZ"
+    ],
+    "place": {
+      "name": "Almaty, Kazakhstan",
+      "lat": 43.2364,
+      "lng": 76.9457
+    }
+  },
+  {
+    "id": "fDEdRmOU-hI",
+    "channel": "eli-from-russia",
+    "title": "This Used to Be a CLOSED Country! | I visited my family in Central Asia",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "UZ"
+    ],
+    "place": {
+      "name": "Tashkent, Uzbekistan",
+      "lat": 41.3123,
+      "lng": 69.2787
+    }
+  },
+  {
+    "id": "IBUN5IesVM0",
+    "channel": "eli-from-russia",
+    "title": "Stereotypes about KAZAKHSTAN: true or not? | Visiting the capital Astana",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "KZ"
+    ],
+    "place": {
+      "name": "Astana, Kazakhstan",
+      "lat": 51.1283,
+      "lng": 71.4305
+    }
+  },
+  {
+    "id": "Fq8QS73ZPh8",
+    "channel": "eli-from-russia",
+    "title": "OFF-ROAD IN AZERBAIJAN: Visiting the HIGHEST VILLAGE in the Caucasus",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "AZ"
+    ],
+    "place": {
+      "name": "Khinalig, Azerbaijan",
+      "lat": 41.1788,
+      "lng": 48.1253
+    }
+  },
+  {
+    "id": "7gZZ9jAGID0",
+    "channel": "eli-from-russia",
+    "title": "Lost in the Provinces of Azerbaijan",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "AZ"
+    ],
+    "place": {
+      "name": "Ivanovka, Ismayilli, Azerbaijan",
+      "lat": 40.7462,
+      "lng": 48.0324
+    }
+  },
+  {
+    "id": "9TyOwFpU-Mg",
+    "channel": "eli-from-russia",
+    "title": "Following my dad’s footsteps in UZBEKISTAN: Soviet train, Samarkand and a mountain village",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "UZ"
+    ],
+    "place": {
+      "name": "Samarkand, Uzbekistan",
+      "lat": 39.655,
+      "lng": 66.9757
+    }
+  },
+  {
+    "id": "wSAqcOVw_5w",
+    "channel": "eli-from-russia",
+    "title": "First impressions of KAZAKHSTAN : Almaty, Earthquake, Soviet heritage",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "KZ"
+    ],
+    "place": {
+      "name": "Almaty, Kazakhstan",
+      "lat": 43.2364,
+      "lng": 76.9457
+    }
+  },
+  {
+    "id": "lxbw09g0Sdo",
+    "channel": "eli-from-russia",
+    "title": "What did I find in KGB sanatoriums and Stalin’s hometown?",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "GE"
+    ],
+    "place": {
+      "name": "Gori, Georgia",
+      "lat": 41.9818,
+      "lng": 44.1118
+    }
+  },
+  {
+    "id": "uakT5YGN2KQ",
+    "channel": "eli-from-russia",
+    "title": "Life in Georgia now vs back in the Soviet Union (Big trip through the country)",
+    "categories": [
+      "travel"
+    ],
+    "countries": [
+      "GE"
+    ],
+    "place": {
+      "name": "Tbilisi, Georgia",
+      "lat": 41.6935,
+      "lng": 44.8014
+    }
   }
 ]

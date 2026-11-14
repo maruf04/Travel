@@ -89,20 +89,29 @@ li a:hover { border-color:var(--accent); }
 .muted { color:var(--muted); }
 code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--raised); border:1px solid var(--line); word-break:break-word; }
 
-/* ---------- timeline: one bar per year / period ---------- */
-.timeline-head { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
-.bars { position:relative; height:64px; margin:0 6px; border-bottom:2px solid var(--line); }
-.bar { position:absolute; bottom:0; width:10px; margin-left:-5px; padding:0; border:0; border-radius:4px 4px 0 0; cursor:pointer;
-  background:var(--topic); opacity:.85; transition: opacity .15s, transform .15s; }
-.bar.period { margin-left:0; min-width:10px; opacity:.45; border-radius:4px 4px 0 0; }
-.bar:hover { opacity:1; transform:scaleY(1.06); transform-origin:bottom; }
-.bars.has-selection .bar { opacity:.25; }
-.bars.has-selection .bar.on { opacity:1; box-shadow:0 0 0 2px var(--card), 0 0 0 4px var(--topic); }
-.bar-count { position:absolute; left:50%; bottom:100%; transform:translateX(-50%); margin-bottom:2px;
-  font-size:11px; font-weight:600; color:var(--muted); pointer-events:none; }
-.bar-labels { position:relative; height:20px; margin:4px 6px 0; }
-.bar-labels span { position:absolute; transform:translateX(-50%); white-space:nowrap; font-size:.78rem; color:var(--muted); }
-.bar-labels span.on { color:var(--topic); font-weight:600; }
+/* ---------- timeline: one line that bends to the next row when it's full (drawn in SVG) ---------- */
+.timeline-head { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:2px; }
+/* min-width:0 lets panels stay page-width on phones */
+.app > * { min-width:0; }
+.tl { position:relative; }
+.tl svg { display:block; overflow:visible; }
+.tl-path { fill:none; stroke:var(--line); stroke-width:6; stroke-linecap:round; stroke-linejoin:round; }
+
+.tl-node { cursor:pointer; outline:none; transition: opacity .2s; }
+.tl.has-selection .tl-node:not(.on) { opacity:.35; }
+.tl-node:hover { opacity:1 !important; }
+/* year label above the circle; the outline in the panel colour keeps it readable over the line */
+.tl-year { fill:var(--c); font-size:14.4px; font-weight:500; text-anchor:middle;
+  paint-order:stroke; stroke:var(--card); stroke-width:4px; stroke-linejoin:round; }
+.tl-node.on .tl-year { font-weight:700; }
+/* the circle: open grey arc, grey ring, coloured ring, coloured dot */
+.tl-mark { transition: transform .2s; }
+.tl-node:hover .tl-mark, .tl-node.on .tl-mark, .tl-node:focus-visible .tl-mark { transform:scale(1.15); }
+.tl-arc { fill:none; stroke:color-mix(in srgb, var(--muted) 45%, transparent); stroke-width:1.5; stroke-dasharray:28 85; }
+.tl-ring { fill:var(--card); stroke:color-mix(in srgb, var(--muted) 55%, transparent); stroke-width:1.5; }
+.tl-node.on .tl-ring, .tl-node:focus-visible .tl-ring { stroke:var(--c); filter:drop-shadow(0 0 5px var(--c)); }
+.tl-inner { fill:none; stroke:var(--c); stroke-width:1.5; }
+.tl-dot { fill:var(--c); }
 
 /* ---------- sidebar ---------- */
 .link { padding:0; border:0; background:none; color:var(--topic, var(--accent)); cursor:pointer; font-size:12px; text-align:left; }
