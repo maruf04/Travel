@@ -1,5 +1,6 @@
-import { countryName } from './countries'
-import { getOverrides, applyOverride } from './overrides'
+import { countryName, EARTH } from './countries'
+import { getOverrides, applyOverride, getDbVideos, getDbChannels } from './overrides'
+import { countryCenter } from './geo'
 
 // All data lives in public/data/ as static JSON, so GitHub Pages can serve it:
 //   categories.json        topics (travel, history, ...) with colour and icon
@@ -23,27 +24,44 @@ function get(path) {
 }
 
 export const getCategories = () => get('categories.json')
-export const getChannels = () => get('channels.json')
+// channels.json plus any channels added on the edit page
+export async function getChannels() {
+  const [json, extra] = await Promise.all([get('channels.json'), getDbChannels()])
+  const ids = new Set(json.map((c) => c.id))
+  return [...json, ...extra.filter((c) => !ids.has(c.id))]
+}
 export const getWorld = () => get('world.json')
 
-// Loads every category file and adds a few derived fields used by the UI.
-// Corrections saved in the admin page (database) are applied on top of the JSON files.
+// Loads the JSON category files, adds the videos added on the edit page, applies saved
+// corrections, and adds a few derived fields used by the UI.
 export async function getVideos(categoryIds) {
-  const [lists, overrides] = await Promise.all([
+  const [lists, overrides, dbVideos, world] = await Promise.all([
     Promise.all(categoryIds.map((id) => get(`videos/${id}.json`))),
     getOverrides(),
+    getDbVideos(),
+    getWorld().catch(() => null),
   ])
+  const added = dbVideos.filter((v) => v.categories.some((c) => categoryIds.includes(c)))
   const seen = new Set()
-  return lists
-    .flat()
+  return [...lists.flat(), ...added]
     .filter((v) => !seen.has(v.id) && seen.add(v.id))
     .map((v) => applyOverride(v, overrides.get(v.id)))
-    .map((v) => ({
-      ...v,
-      countries: v.countries || [],
-      countryNames: (v.countries || []).map(countryName),
-      url: 'https://www.youtube.com/watch?v=' + v.id,
-    }))
+    .map((v) => {
+      const countries = v.countries || []
+      let place = v.place
+      // corrected/added videos without an exact place get a pin at the centre of their first country
+      if (!place && (v.edited || v.added) && countries[0] && countries[0] !== EARTH) {
+        const c = countryCenter(world, countries[0])
+        if (c) place = { name: countryName(countries[0]), lat: c[0], lng: c[1] }
+      }
+      return {
+        ...v,
+        ...(place ? { place } : {}),
+        countries,
+        countryNames: countries.map(countryName),
+        url: 'https://www.youtube.com/watch?v=' + v.id,
+      }
+    })
 }
 
 // The map markers work with flat "stops": one per video that has a place.

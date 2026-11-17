@@ -6,6 +6,9 @@ import { useMapSelection } from './useMapSelection'
 import { useTheme } from './useTheme'
 import { getCategories, getChannels, getVideos, getWorld, toStops, channelLogo } from './api'
 import { flagUrl, EARTH_NAME } from './countries'
+import SiteHeader from './SiteHeader'
+import CountryInfo from './CountryInfo'
+import Footer from './Footer'
 
 const MAP_HEIGHT = 'max(520px, 72vh)'
 const ALL = 'all'
@@ -136,18 +139,7 @@ export default function App() {
 
   return (
     <div className="app" style={{ '--topic': topicColor }}>
-      <header className="top">
-        <div>
-          <h1>🌍 Vlogger World Tracker</h1>
-          <p>Travel, history, geopolitics, inventions and culture from YouTube, on one map.</p>
-        </div>
-        <div className="top-actions">
-          <a className="edit-link" href="#/edit">✏️ Edit</a>
-          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle light and dark theme" title="Toggle theme">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-        </div>
-      </header>
+      <SiteHeader theme={theme} toggleTheme={toggleTheme} />
 
       <nav className="tabs" aria-label="Topics">
         <button className={topic === ALL ? 'tab on' : 'tab'} style={{ '--c': ALL_COLOR }} onClick={() => chooseTopic(ALL)}>
@@ -299,6 +291,8 @@ export default function App() {
           )}
         </aside>
       </div>
+      <CountryInfo country={sel.selectedCountry} visible={Boolean(sel.playing)} />
+      <Footer />
     </div>
   )
 }
