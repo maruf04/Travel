@@ -1,4 +1,5 @@
 import { countryName } from './countries'
+import { getOverrides, applyOverride } from './overrides'
 
 // All data lives in public/data/ as static JSON, so GitHub Pages can serve it:
 //   categories.json        topics (travel, history, ...) with colour and icon
@@ -26,12 +27,17 @@ export const getChannels = () => get('channels.json')
 export const getWorld = () => get('world.json')
 
 // Loads every category file and adds a few derived fields used by the UI.
+// Corrections saved in the admin page (database) are applied on top of the JSON files.
 export async function getVideos(categoryIds) {
-  const lists = await Promise.all(categoryIds.map((id) => get(`videos/${id}.json`)))
+  const [lists, overrides] = await Promise.all([
+    Promise.all(categoryIds.map((id) => get(`videos/${id}.json`))),
+    getOverrides(),
+  ])
   const seen = new Set()
   return lists
     .flat()
     .filter((v) => !seen.has(v.id) && seen.add(v.id))
+    .map((v) => applyOverride(v, overrides.get(v.id)))
     .map((v) => ({
       ...v,
       countries: v.countries || [],

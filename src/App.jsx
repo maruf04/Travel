@@ -35,7 +35,7 @@ export default function App() {
       })
       .then(setVideos)
       .catch(fail)
-    getWorld().then(setWorld).catch(() => {}) // shading is optional; markers still work without it
+    getWorld().then(setWorld).catch(() => { }) // shading is optional; markers still work without it
   }, [])
 
   const catById = useMemo(() => Object.fromEntries(categories.map((c) => [c.id, c])), [categories])
@@ -85,8 +85,8 @@ export default function App() {
     () =>
       era
         ? inChannel.filter(
-            (v) => (eraCountry && !v.countryNames.includes(eraCountry)) || (v.era && v.era.from === era[0] && v.era.to === era[1])
-          )
+          (v) => (eraCountry && !v.countryNames.includes(eraCountry)) || (v.era && v.era.from === era[0] && v.era.to === era[1])
+        )
         : inChannel,
     [inChannel, era, eraCountry]
   )
@@ -141,9 +141,12 @@ export default function App() {
           <h1>🌍 Vlogger World Tracker</h1>
           <p>Travel, history, geopolitics, inventions and culture from YouTube, on one map.</p>
         </div>
-        <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle light and dark theme" title="Toggle theme">
-          {theme === 'dark' ? '☀️' : '🌙'}
-        </button>
+        <div className="top-actions">
+          <a className="edit-link" href="#/edit">✏️ Edit</a>
+          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle light and dark theme" title="Toggle theme">
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </div>
       </header>
 
       <nav className="tabs" aria-label="Topics">
