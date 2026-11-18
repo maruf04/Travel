@@ -10,6 +10,8 @@
 --   categories        the topics (travel, history, ...). Add one with a new row, no code or JSON needed
 --   channels          YouTube channels
 --   videos            all videos
+--   contributor_profiles  how each editor appears in the site footer (name, icon, contact link)
+--   public_contributors   a view listing people who added videos, for the footer
 --   channels_extra    older table for channels added on the edit page (kept so nothing breaks; replaced by channels)
 -- plus the rules (Row Level Security) that decide who can read and write.
 --
@@ -64,6 +66,14 @@ create table if not exists channels (
   created_at timestamptz default now()
 );
 
+create table if not exists contributor_profiles (
+  user_id uuid primary key references auth.users on delete cascade,
+  display_name text not null check (char_length(display_name) between 1 and 40),
+  icon text,                                  -- an emoji
+  contact_url text check (contact_url is null or contact_url ~* '^(https?://|mailto:|tel:)'),
+  updated_at timestamptz default now()
+);
+
 create table if not exists channels_extra (
   id text primary key,
   name text not null,
@@ -88,6 +98,15 @@ create table if not exists videos (
   created_at timestamptz default now()
 );
 
+
+-- The footer's list: people who have added at least one video, most videos first.
+-- (security_invoker: it follows the normal rules of the tables it reads, nothing is bypassed)
+create or replace view public.public_contributors with (security_invoker = true) as
+select cp.user_id, cp.display_name, cp.icon, cp.contact_url, count(v.id)::int as videos
+from public.contributor_profiles cp
+join public.videos v on v.added_by = cp.user_id
+group by cp.user_id, cp.display_name, cp.icon, cp.contact_url
+order by count(v.id) desc, cp.display_name;
 
 -- Channels added earlier on the edit page move into the new channels table.
 do $$
@@ -135,6 +154,7 @@ alter table profiles enable row level security;
 alter table video_overrides enable row level security;
 alter table categories enable row level security;
 alter table channels enable row level security;
+alter table contributor_profiles enable row level security;
 alter table channels_extra enable row level security;
 alter table videos enable row level security;
 
@@ -159,6 +179,27 @@ create policy "editors write overrides" on video_overrides
   for all
   using (public.my_role() in ('admin', 'member'))
   with check (public.my_role() in ('admin', 'member'));
+
+-- contributor_profiles: everyone can read (it is shown in the footer); you write only your own, and only as member/admin
+drop policy if exists "anyone reads contributor profiles" on contributor_profiles;
+create policy "anyone reads contributor profiles" on contributor_profiles
+  for select using (true);
+
+drop policy if exists "editors add own contributor profile" on contributor_profiles;
+create policy "editors add own contributor profile" on contributor_profiles
+  for insert with check (user_id = auth.uid() and public.my_role() in ('admin', 'member'));
+
+drop policy if exists "editors update own contributor profile" on contributor_profiles;
+create policy "editors update own contributor profile" on contributor_profiles
+  for update
+  using (user_id = auth.uid() and public.my_role() in ('admin', 'member'))
+  with check (user_id = auth.uid() and public.my_role() in ('admin', 'member'));
+
+drop policy if exists "delete own contributor profile" on contributor_profiles;
+create policy "delete own contributor profile" on contributor_profiles
+  for delete using (user_id = auth.uid());
+
+grant select on public.public_contributors to anon, authenticated;
 
 -- categories: everyone reads; only admins add, change or delete topics
 drop policy if exists "anyone reads categories" on categories;
