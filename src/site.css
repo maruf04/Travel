@@ -1,54 +1,48 @@
 /* ===== New styles (add to the end of src/index.css, or import this file in main.jsx) ===== */
 
-/* ---------- banner at the top of the page: forest, mountains, desert, river and ocean ---------- */
+/* ---------- banner at the top of the page: sky, sun, clouds and birds ---------- */
 .hero {
   /* dusk colours (dark theme) */
   --hs-sky-top: #0b1b3a; --hs-sky-bottom: #2a5f7c; --hs-sun: #f4f1d0; --hs-cloud: rgba(255, 255, 255, .22);
-  --hs-mtn-far: #2a4a66; --hs-mtn-near: #1d3a52; --hs-snow: rgba(255, 255, 255, .8);
-  --hs-ocean-top: #1b6a8a; --hs-ocean-deep: #0b3552; --hs-land: #1f5a3a; --hs-hill: #174a30;
-  --hs-tree1: #1b6b45; --hs-tree2: #2a8a58; --hs-sand: #8a7343; --hs-sand2: #a08850;
-  --hs-river: #3aa0c8; --hs-bird: #cfd8e0;
+  --hs-bird: #cfd8e0;
   position: relative; overflow: hidden; display: flex; min-height: 170px; margin-bottom: 16px;
   border: 1px solid var(--line); border-radius: 18px; background: var(--card);
 }
 [data-theme='light'] .hero {
   /* daylight colours */
   --hs-sky-top: #6fb8ee; --hs-sky-bottom: #dff2ff; --hs-sun: #ffd75e; --hs-cloud: rgba(255, 255, 255, .85);
-  --hs-mtn-far: #8aa5c0; --hs-mtn-near: #6a88a6; --hs-snow: rgba(255, 255, 255, .95);
-  --hs-ocean-top: #3fb4d8; --hs-ocean-deep: #1b86b3; --hs-land: #7cc46a; --hs-hill: #4e9a4c;
-  --hs-tree1: #2f7a3b; --hs-tree2: #3f9a4a; --hs-sand: #e6c77a; --hs-sand2: #f0d890;
-  --hs-river: #4cc3ee; --hs-bird: #35506b;
+  --hs-bird: #35506b;
 }
-.hero-scene { position: absolute; inset: 0; width: 100%; height: 190px; }
+.hero-scene { position: absolute; inset: 0; width: 100%; height: 100%; }
 /* soft fade on the left so the title stays easy to read over the picture */
 .hero::before {
   content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(0, 0, 0, .25) 0%, transparent 60%);
   background: linear-gradient(90deg, color-mix(in srgb, var(--card) 78%, transparent) 0%, color-mix(in srgb, var(--card) 40%, transparent) 40%, transparent 68%);
 }
-.hero-inner { position: relative; z-index: 2; width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 22px 26px; box-sizing: border-box; transform: translateY(50px);}
+.hero-inner { position: relative; z-index: 2; width: 100%; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 22px 26px; box-sizing: border-box; }
 .hero h1 { margin: 0 0 6px; font-size: clamp(1.5rem, 4vw, 2.1rem); }
 .hero p { margin: 0; color: var(--text); opacity: .85; }
 .hero-text a { color: var(--accent); }
-.hero-sm { min-height: 170px; }
-.hero-sm .hero-inner { padding: 22px 26px; }
+.hero-sm { min-height: 92px; }
+.hero-sm .hero-inner { padding: 16px 22px; }
 .hero-sm h1 { font-size: 1.4rem; margin-bottom: 4px; }
-.hero-actions { display: flex; align-items: center; gap: 15px; transform: translateY(10px); }
+.hero-actions { display: flex; align-items: center; gap: 10px; }
 .hero-btn {
   padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--raised);
-  color: var(--text); text-decoration: none; cursor: pointer; font-size: .95rem; white-space: nowrap;
+  color: var(--text); text-decoration: none; cursor: pointer; font-size: .92rem; white-space: nowrap;
 }
 .hero-btn:hover { border-color: var(--accent); }
 .hero-btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
 
-/* gentle movement: waves roll, the river flows, clouds drift */
-.hs-wave { animation: hs-wave 8s linear infinite; }
-.hs-flow { stroke-dasharray: 3 12; animation: hs-flow 2.6s linear infinite; }
+/* gentle movement: clouds drift, birds glide */
 .hs-cloud { animation: hs-cloud 40s ease-in-out infinite alternate; }
 .hs-c2 { animation-duration: 55s; }
-@keyframes hs-wave { to { transform: translateX(-100px); } }
-@keyframes hs-flow { to { stroke-dashoffset: -30; } }
+.hs-c3 { animation-duration: 48s; animation-direction: alternate-reverse; }
+.hs-birds { animation: hs-birds 14s ease-in-out infinite alternate; }
 @keyframes hs-cloud { to { transform: translateX(70px); } }
-@media (prefers-reduced-motion: reduce) { .hs-wave, .hs-flow, .hs-cloud { animation: none; } }
+@keyframes hs-birds { to { transform: translate(40px, -8px); } }
+@media (prefers-reduced-motion: reduce) { .hs-cloud, .hs-birds { animation: none; } }
 
 /* ---------- country description under the map ---------- */
 .country-info-head { display: flex; align-items: center; gap: 10px; }
@@ -75,7 +69,8 @@
 
 /* ---------- login / create account ---------- */
 .auth-wrap {
-  position: relative; min-height: 100vh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 24px;
+  position: relative; min-height: 100vh; min-height: 100dvh; box-sizing: border-box; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: var(--bg, var(--card));
   background:
     radial-gradient(900px 500px at 12% 8%, color-mix(in srgb, var(--accent) 30%, transparent), transparent 60%),
     radial-gradient(700px 480px at 92% 92%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%),
@@ -94,7 +89,7 @@
 }
 .auth-back { font-size: .85rem; color: var(--muted); text-decoration: none; }
 .auth-back:hover { color: var(--accent); }
-.auth-logo { display: grid; place-items: center; width: 56px; height: 56px; margin: 16px 0 10px; border-radius: 16px; font-size: 30px; background: color-mix(in srgb, var(--accent) 24%, var(--raised)); }
+.auth-logo { display: grid; place-items: center; width: 56px; height: 56px; margin: 16px 0 10px; border-radius: 16px; font-size: 30px; background: var(--raised); background: color-mix(in srgb, var(--accent) 24%, var(--raised)); }
 .auth-card h1 { margin: 0; font-size: 1.6rem; }
 .auth-sub { margin: 6px 0 18px; color: var(--muted); }
 .auth-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); }
@@ -117,7 +112,7 @@
 .a-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
 .a-tabs button { padding: 9px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--raised); color: var(--text); cursor: pointer; }
 .a-tabs button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
-.a-requests { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+.a-requests { border-color: var(--accent); background: var(--card); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
 .a-preview { display: flex; align-items: center; gap: 10px; }
 .a-preview img { border-radius: 6px; object-fit: cover; }
 .admin select { padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--raised); color: var(--text); font-size: .95rem; }

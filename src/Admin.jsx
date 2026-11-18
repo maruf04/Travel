@@ -40,6 +40,19 @@ function extractId(text) {
 
 const slug = (s) => s.toLowerCase().normalize('NFKD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 
+// Finds the centre of a country on OpenStreetMap, so every saved video has a pin on the map
+// (even small countries that are missing from the border data). Returns null if it fails.
+async function geocodeCountry(code) {
+  if (!code || code === EARTH) return null
+  try {
+    const res = await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(countryName(code)))
+    const hit = (await res.json())[0]
+    return hit ? { lat: +(+hit.lat).toFixed(4), lng: +(+hit.lon).toFixed(4) } : null
+  } catch {
+    return null
+  }
+}
+
 // Both empty -> no pin. Otherwise both must be valid numbers.
 function parsePlace(lat, lng) {
   const hasLat = lat !== '' && lat != null
@@ -141,6 +154,16 @@ function AuthPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
+  // Switching between "Sign in" and "Create account" starts with an empty form.
+  function switchMode(next) {
+    setMode(next)
+    setEmail('')
+    setPassword('')
+    setShow(false)
+    setError('')
+    setNotice('')
+  }
+
   async function submit(e) {
     e.preventDefault()
     setBusy(true)
@@ -152,7 +175,10 @@ function AuthPage() {
     } else {
       const { error: err } = await supabase.auth.signUp({ email, password })
       if (err) setError(err.message)
-      else setNotice('Account created! If you received a confirmation email, open it first. Then sign in. An admin will approve your account before you can edit.')
+      else {
+        setPassword('')
+        setNotice('Account created! If you received a confirmation email, open it first. Then sign in. An admin will approve your account before you can edit.')
+      }
     }
     setBusy(false)
   }
@@ -170,11 +196,11 @@ function AuthPage() {
         </p>
 
         <div className="auth-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={mode === 'in'} className={mode === 'in' ? 'on' : ''} onClick={() => { setMode('in'); setError(''); setNotice('') }}>Sign in</button>
-          <button type="button" role="tab" aria-selected={mode === 'up'} className={mode === 'up' ? 'on' : ''} onClick={() => { setMode('up'); setError(''); setNotice('') }}>Create account</button>
+          <button type="button" role="tab" aria-selected={mode === 'in'} className={mode === 'in' ? 'on' : ''} onClick={() => switchMode('in')}>Sign in</button>
+          <button type="button" role="tab" aria-selected={mode === 'up'} className={mode === 'up' ? 'on' : ''} onClick={() => switchMode('up')}>Create account</button>
         </div>
 
-        <form onSubmit={submit}>
+        <form key={mode} onSubmit={submit}>
           <label>
             Email
             <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
@@ -221,6 +247,10 @@ function Editor({ video, user, isAdmin, onClose, onSaved }) {
     const place = parsePlace(lat, lng)
     if (place.error) return setMsg(place.error)
     setBusy(true)
+    if (place.lat === null) {
+      const c = await geocodeCountry(codes[0]) // no place typed: pin the first country
+      if (c) Object.assign(place, c)
+    }
     const { error } = await supabase.from('video_overrides').upsert({
       video_id: video.id,
       countries: codes,
@@ -404,6 +434,10 @@ function AddVideo({ categories, channels, existingIds, onAdded }) {
     }
 
     setBusy(true)
+    if (place.lat === null) {
+      const c = await geocodeCountry(codes[0]) // no place typed: pin the first country
+      if (c) Object.assign(place, c)
+    }
     let channelId = channelSel
     if (channelSel === '__new') {
       const base = slug(channelName) || 'channel'
