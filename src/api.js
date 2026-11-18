@@ -1,5 +1,5 @@
 import { countryName, EARTH } from './countries'
-import { getOverrides, applyOverride, getDbVideos, getDbChannels } from './overrides'
+import { getOverrides, applyOverride, getDbVideos, getDbChannels, getDbCategories } from './overrides'
 import { countryCenter } from './geo'
 
 // All data lives in public/data/ as static JSON, so GitHub Pages can serve it:
@@ -23,7 +23,12 @@ function get(path) {
   return cache.get(path)
 }
 
-export const getCategories = () => get('categories.json')
+// categories.json plus topics added on the edit page (the data files win if an id is in both)
+export async function getCategories() {
+  const [json, extra] = await Promise.all([get('categories.json'), getDbCategories()])
+  const ids = new Set(json.map((c) => c.id))
+  return [...json, ...extra.filter((c) => !ids.has(c.id))]
+}
 // channels.json plus any channels added on the edit page
 export async function getChannels() {
   const [json, extra] = await Promise.all([get('channels.json'), getDbChannels()])
@@ -36,7 +41,8 @@ export const getWorld = () => get('world.json')
 // corrections, and adds a few derived fields used by the UI.
 export async function getVideos(categoryIds) {
   const [lists, overrides, dbVideos, world] = await Promise.all([
-    Promise.all(categoryIds.map((id) => get(`videos/${id}.json`))),
+    // a topic added on the edit page has no JSON file, so a missing file just means no videos from it
+    Promise.all(categoryIds.map((id) => get(`videos/${id}.json`).catch(() => []))),
     getOverrides(),
     getDbVideos(),
     getWorld().catch(() => null),

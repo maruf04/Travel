@@ -65,3 +65,16 @@ export async function getDbChannels() {
     return []
   }
 }
+
+// Topics (categories) added on the edit page, in tab order.
+export async function getDbCategories() {
+  if (!supabase) return []
+  try {
+    const { data, error } = await supabase.from('categories').select('*').order('sort')
+    if (error) throw error
+    return data.map((c) => ({ id: c.id, name: c.name, icon: c.icon || '📌', color: c.color || '#4ba3f0', added: true }))
+  } catch (e) {
+    console.warn('Could not load added topics:', e.message)
+    return []
+  }
+}

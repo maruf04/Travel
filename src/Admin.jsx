@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './supabase'
 import { getCategories, getChannels, getVideos } from './api'
 import { useAuth } from './useAuth'
+import EmojiPicker from './EmojiPicker'
+import { defaultIcon, normalizeContact } from './contactLinks'
 import HeroScene from './HeroScene'
 import { countryName, flagUrl, EARTH, EARTH_NAME } from './countries'
 
@@ -364,14 +366,146 @@ function VideoList({ videos, channels, user, isAdmin, onChanged }) {
   )
 }
 
+/* ---------- topics (categories) ---------- */
+
+// Small form to create a topic. Used inside "Add a video" and on the Topics tab (admins only).
+function NewTopic({ categories, onCreated }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [icon, setIcon] = useState('📌')
+  const [color, setColor] = useState('#4ba3f0')
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  async function create() {
+    if (!name.trim()) return setMsg('Give the topic a name.')
+    const id = slug(name) || 'topic-' + Date.now().toString(36) // names in other scripts get a generated id
+    if (categories.some((c) => c.id === id || c.name.toLowerCase() === name.trim().toLowerCase())) {
+      return setMsg('A topic with this name already exists.')
+    }
+    setBusy(true)
+    const { error } = await supabase
+      .from('categories')
+      .insert({ id, name: name.trim(), icon: icon.trim() || null, color, sort: categories.length })
+    setBusy(false)
+    if (error) return setMsg('Could not add the topic: ' + error.message)
+    setName('')
+    setMsg('')
+    setOpen(false)
+    onCreated(id)
+  }
+
+  if (!open) return <button type="button" className="a-btn" onClick={() => setOpen(true)}>＋ New topic</button>
+  return (
+    <div className="a-newtopic">
+      <div className="a-inline">
+        <input
+          placeholder="Topic name, e.g. Food"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), create())}
+        />
+        <EmojiPicker value={icon} onChange={setIcon} />
+        <input className="a-color" type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Topic colour" title="Topic colour" />
+      </div>
+      {msg && <p className="a-msg">{msg}</p>}
+      <div className="a-inline">
+        <button type="button" className="a-btn primary" onClick={create} disabled={busy}>{busy ? 'Adding…' : 'Add topic'}</button>
+        <button type="button" className="a-btn" onClick={() => { setOpen(false); setMsg('') }}>Cancel</button>
+      </div>
+    </div>
+  )
+}
+
+function CategoriesPanel({ categories, onChanged }) {
+  const [error, setError] = useState('')
+  async function remove(c) {
+    if (!window.confirm(`Delete the topic "${c.name}"? Its videos stay in the database but won't show until they get another topic.`)) return
+    const { error: err } = await supabase.from('categories').delete().eq('id', c.id)
+    if (err) setError(err.message)
+    else onChanged()
+  }
+  return (
+    <section className="panel">
+      <h2>Topics ({categories.length})</h2>
+      <div className="a-list">
+        {categories.map((c) => (
+          <div key={c.id} className="a-row a-member">
+            <span><span style={{ color: c.color }}>●</span> {c.icon} {c.name}{c.added ? '' : ' · from the data files'}</span>
+            {c.added && <button className="a-btn danger" onClick={() => remove(c)}>Delete</button>}
+          </div>
+        ))}
+      </div>
+      {error && <p className="error">{error}</p>}
+      <NewTopic categories={categories} onCreated={onChanged} />
+    </section>
+  )
+}
+
+/* ---------- channels added on the edit page ---------- */
+
+function ChannelRow({ row, onSave, saved }) {
+  const [text, setText] = useState(row.country ? countryName(row.country) : '')
+  return (
+    <div className="a-row a-member">
+      <span>{row.name}</span>
+      <span className="a-inline">
+        <input list="country-list" placeholder="Home country" value={text} onChange={(e) => setText(e.target.value)} />
+        <button className="a-btn" onClick={() => onSave(row, text)}>{saved ? 'Saved ✓' : 'Save'}</button>
+      </span>
+    </div>
+  )
+}
+
+function ChannelsPanel() {
+  const [rows, setRows] = useState([])
+  const [error, setError] = useState('')
+  const [saved, setSaved] = useState('')
+
+  const load = useCallback(async () => {
+    const { data, error: err } = await supabase.from('channels_extra').select('id, name, country').order('name')
+    if (err) setError(err.message)
+    else setRows(data)
+  }, [])
+  useEffect(() => {
+    load()
+  }, [load])
+
+  async function save(row, text) {
+    let code = null
+    if (text.trim()) {
+      code = findCode(text)
+      if (!code || code === EARTH) return setError(`"${text}" isn't a country I recognise. Pick one from the suggestions.`)
+    }
+    const { error: err } = await supabase.from('channels_extra').update({ country: code }).eq('id', row.id)
+    if (err) return setError(err.message)
+    setError('')
+    setSaved(row.id)
+    load()
+  }
+
+  return (
+    <section className="panel">
+      <h2>Channels added here ({rows.length})</h2>
+      <p className="muted">Set each channel's home country. Channels from the original data files can't be changed on this page yet.</p>
+      {error && <p className="error">{error}</p>}
+      <div className="a-list">
+        {rows.map((r) => <ChannelRow key={r.id + (r.country || '')} row={r} onSave={save} saved={saved === r.id} />)}
+        {rows.length === 0 && !error && <p>No channels were added here yet.</p>}
+      </div>
+    </section>
+  )
+}
+
 /* ---------- add a video ---------- */
 
-function AddVideo({ categories, channels, existingIds, onAdded }) {
+function AddVideo({ categories, channels, existingIds, isAdmin, onAdded }) {
   const [link, setLink] = useState('')
   const [id, setId] = useState(null)
   const [title, setTitle] = useState('')
   const [channelSel, setChannelSel] = useState('')
   const [newChannel, setNewChannel] = useState('')
+  const [newChannelCountry, setNewChannelCountry] = useState('')
   const [cats, setCats] = useState([])
   const [codes, setCodes] = useState([])
   const [placeName, setPlaceName] = useState('')
@@ -421,6 +555,11 @@ function AddVideo({ categories, channels, existingIds, onAdded }) {
     if (!title.trim()) return setMsg('Please enter the video title.')
     const channelName = newChannel.trim()
     if (!channelSel || (channelSel === '__new' && !channelName)) return setMsg('Choose a channel, or type the name of a new one.')
+    let channelCountry = null
+    if (channelSel === '__new' && newChannelCountry.trim()) {
+      channelCountry = findCode(newChannelCountry)
+      if (!channelCountry || channelCountry === EARTH) return setMsg(`"${newChannelCountry}" isn't a country I recognise. Pick one from the suggestions.`)
+    }
     if (cats.length === 0) return setMsg('Choose at least one topic.')
     const place = parsePlace(lat, lng)
     if (place.error) return setMsg(place.error)
@@ -444,7 +583,7 @@ function AddVideo({ categories, channels, existingIds, onAdded }) {
       const taken = new Set(channels.map((c) => c.id))
       channelId = base
       for (let n = 2; taken.has(channelId); n++) channelId = `${base}-${n}`
-      const { error } = await supabase.from('channels_extra').insert({ id: channelId, name: channelName })
+      const { error } = await supabase.from('channels_extra').insert({ id: channelId, name: channelName, country: channelCountry })
       if (error) {
         setBusy(false)
         return setMsg('Could not save the channel: ' + error.message)
@@ -466,7 +605,7 @@ function AddVideo({ categories, channels, existingIds, onAdded }) {
     if (error) return setMsg('Could not add the video: ' + error.message)
 
     setMsg(`Added “${title.trim()}”. It now shows on the map.`)
-    setLink(''); setId(null); setTitle(''); setChannelSel(''); setNewChannel(''); setCats([]); setCodes([])
+    setLink(''); setId(null); setTitle(''); setChannelSel(''); setNewChannel(''); setNewChannelCountry(''); setCats([]); setCodes([])
     setPlaceName(''); setLat(''); setLng(''); setEraFrom(''); setEraTo('')
     onAdded()
   }
@@ -498,7 +637,12 @@ function AddVideo({ categories, channels, existingIds, onAdded }) {
           {channels.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           <option value="__new">+ A new channel…</option>
         </select>
-        {channelSel === '__new' && <input placeholder="New channel name" value={newChannel} onChange={(e) => setNewChannel(e.target.value)} />}
+        {channelSel === '__new' && (
+          <>
+            <input placeholder="New channel name" value={newChannel} onChange={(e) => setNewChannel(e.target.value)} />
+            <input list="country-list" placeholder="Channel's home country (optional)" value={newChannelCountry} onChange={(e) => setNewChannelCountry(e.target.value)} />
+          </>
+        )}
       </div>
 
       <div className="a-field">
@@ -510,6 +654,15 @@ function AddVideo({ categories, channels, existingIds, onAdded }) {
             </button>
           ))}
         </div>
+        {isAdmin && (
+          <NewTopic
+            categories={categories}
+            onCreated={async (id) => {
+              await onAdded() // reload topics so the new one appears
+              setCats((prev) => [...prev, id])
+            }}
+          />
+        )}
       </div>
 
       <CountryPicker codes={codes} setCodes={setCodes} onMsg={setMsg} />
@@ -605,6 +758,82 @@ function Members({ rows, error, setRole, meId }) {
   )
 }
 
+/* ---------- my profile (how I appear in the footer) ---------- */
+
+function ProfilePanel({ user }) {
+  const [name, setName] = useState('')
+  const [icon, setIcon] = useState(defaultIcon(user.id))
+  const [contact, setContact] = useState('')
+  const [loaded, setLoaded] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [msg, setMsg] = useState('')
+
+  useEffect(() => {
+    supabase
+      .from('contributor_profiles')
+      .select('display_name, icon, contact_url')
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setName(data.display_name || '')
+          setIcon(data.icon || defaultIcon(user.id))
+          setContact((data.contact_url || '').replace(/^mailto:/i, ''))
+        }
+        setLoaded(true)
+      })
+  }, [user.id])
+
+  async function save(e) {
+    e.preventDefault()
+    setMsg('')
+    if (!name.trim()) return setMsg('Please enter the name you want to show.')
+    const link = normalizeContact(contact)
+    if (link === undefined) return setMsg("That contact doesn't look right. Use an email, a phone number or a web link.")
+    setBusy(true)
+    const { error } = await supabase.from('contributor_profiles').upsert({
+      user_id: user.id,
+      display_name: name.trim(),
+      icon: icon || null,
+      contact_url: link,
+      updated_at: new Date().toISOString(),
+    })
+    setBusy(false)
+    setMsg(error ? 'Could not save: ' + error.message : 'Saved. You appear in the footer once you have added a video.')
+  }
+
+  return (
+    <form className="panel a-editor" onSubmit={save}>
+      <h2>My profile</h2>
+      <p className="muted">People who add videos are listed under "Contributors" in the footer. Choose how you appear.</p>
+
+      <div className="a-field">
+        <span>Name to show</span>
+        <input placeholder="e.g. Rafi" value={name} onChange={(e) => setName(e.target.value)} maxLength={40} disabled={!loaded} />
+      </div>
+
+      <div className="a-field">
+        <span>Icon</span>
+        <div className="a-inline"><EmojiPicker value={icon} onChange={setIcon} /></div>
+      </div>
+
+      <div className="a-field">
+        <span>Contact link (optional)</span>
+        <input placeholder="Email, phone, or a web link such as facebook.com/yourname" value={contact} onChange={(e) => setContact(e.target.value)} disabled={!loaded} />
+        <small>Your name and icon both link here. It is public, so only use something you are happy to share.</small>
+      </div>
+
+      <div className="a-field">
+        <span>Preview</span>
+        <span className="contrib"><span className="contrib-icon">{icon}</span><span className="contrib-name">{name.trim() || 'Your name'}</span></span>
+      </div>
+
+      {msg && <p className="a-msg">{msg}</p>}
+      <div className="a-inline"><button className="a-btn primary" disabled={busy || !loaded}>{busy ? 'Saving…' : 'Save profile'}</button></div>
+    </form>
+  )
+}
+
 /* ---------- signed-in area ---------- */
 
 function Workspace({ user, role }) {
@@ -636,7 +865,9 @@ function Workspace({ user, role }) {
   const tabs = [
     ['videos', '✏️ Edit videos'],
     ['add', '➕ Add video'],
-    ...(isAdmin ? [['members', `👥 Members${waiting ? ` (${waiting})` : ''}`]] : []),
+    ['channels', '📺 Channels'],
+    ['profile', '👤 My profile'],
+    ...(isAdmin ? [['topics', '🏷️ Topics'], ['members', `👥 Members${waiting ? ` (${waiting})` : ''}`]] : []),
   ]
 
   return (
@@ -649,7 +880,10 @@ function Workspace({ user, role }) {
       </nav>
       {error && <p className="error">{error}</p>}
       {tab === 'videos' && <VideoList videos={videos} channels={channels} user={user} isAdmin={isAdmin} onChanged={load} />}
-      {tab === 'add' && <AddVideo categories={categories} channels={channels} existingIds={existingIds} onAdded={load} />}
+      {tab === 'add' && <AddVideo categories={categories} channels={channels} existingIds={existingIds} isAdmin={isAdmin} onAdded={load} />}
+      {tab === 'channels' && <ChannelsPanel />}
+      {tab === 'profile' && <ProfilePanel user={user} />}
+      {tab === 'topics' && isAdmin && <CategoriesPanel categories={categories} onChanged={load} />}
       {tab === 'members' && isAdmin && <Members rows={profiles.rows} error={profiles.error} setRole={profiles.setRole} meId={user.id} />}
       <datalist id="country-list">
         {ALL_COUNTRIES.map((c) => <option key={c.code} value={c.name} />)}
