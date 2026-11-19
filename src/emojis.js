@@ -81,4 +81,19 @@ export const EMOJI_GROUPS = [
       ['🥾', 'hiking boot trek'], ['⛷️', 'skiing snow'], ['🏊', 'swimming'], ['🛶', 'canoe kayak'],
     ],
   },
+  {
+    id: 'contributors', label: '🤖', title: 'Human & animal',
+    items: [
+      ['🧑', 'person adult neutral avatar'], ['👨', 'man male avatar'], ['👩', 'woman female avatar'],
+      ['🧔', 'beard person avatar'], ['👱', 'blonde person avatar'], ['👴', 'older man senior avatar'],
+      ['👵', 'older woman senior avatar'], ['🧑‍💻', 'developer coder tech creator'], ['🧑‍🎨', 'artist painter creator'],
+      ['🧑‍🔬', 'scientist researcher'], ['🧑‍🏫', 'teacher educator'], ['🧑‍🚀', 'astronaut space explorer'],
+      ['🧙', 'wizard mage fantasy'], ['🥷', 'ninja stealth'], ['🦸', 'superhero hero'],
+      ['👽', 'alien extraterrestrial'], ['🤖', 'robot bot ai'], ['👻', 'ghost spirit'],
+      ['🎃', 'pumpkin halloween'], ['🦊', 'fox clever'], ['🐼', 'panda bear'],
+      ['🐨', 'koala'], ['🐸', 'frog'], ['🦉', 'owl'],
+      ['🐧', 'penguin'], ['🐺', 'wolf'], ['🦄', 'unicorn magic'],
+      ['🐲', 'dragon'], ['🐶', 'dog puppy pet'], ['🐱', 'cat kitten pet'],
+    ]
+  },
 ]

@@ -25,9 +25,32 @@ export function countryName(code) {
   return name
 }
 
-// Accepts an ISO code or a name returned by countryName(). Earth has no flag (null).
+// Common mistakes in saved data: "UK" is not an ISO code (the United Kingdom is "GB").
+const CODE_ALIASES = { UK: 'GB' }
+
+// Finds the ISO code for a country name such as "Germany", even if no video uses that country yet.
+let allNames = null
+function codeFromName(name) {
+  if (!allNames) {
+    allNames = new Map()
+    for (let a = 65; a <= 90; a++) {
+      for (let b = 65; b <= 90; b++) {
+        const code = String.fromCharCode(a, b)
+        const n = countryName(code)
+        if (n && n !== code && !/unknown/i.test(n)) allNames.set(n.toLowerCase(), code)
+      }
+    }
+  }
+  return allNames.get(name.toLowerCase())
+}
+
+// Accepts an ISO code ("DE") or a country name ("Germany"), in any capitals. Earth has no flag (null).
 export function flagUrl(country) {
-  if (!country || country.toUpperCase() === EARTH || country === EARTH_NAME) return null
-  const code = /^[A-Z]{2}$/i.test(country) ? country : nameToCode.get(country)
-  return code ? `https://flagcdn.com/w80/${code.toLowerCase()}.png` : null
+  if (!country) return null
+  const text = String(country).trim()
+  if (!text || text.toUpperCase() === EARTH || text === EARTH_NAME) return null
+  let code = /^[A-Z]{2}$/i.test(text) ? text.toUpperCase() : nameToCode.get(text) || codeFromName(text)
+  if (!code) return null
+  code = CODE_ALIASES[code] || code
+  return `https://flagcdn.com/w80/${code.toLowerCase()}.png`
 }

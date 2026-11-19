@@ -3,6 +3,7 @@ import { supabase } from './supabase'
 import { getCategories, getChannels, getVideos } from './api'
 import { useAuth } from './useAuth'
 import EmojiPicker from './EmojiPicker'
+import ColorPicker from './ColorPicker'
 import { defaultIcon, normalizeContact } from './contactLinks'
 import HeroScene from './HeroScene'
 import { countryName, flagUrl, EARTH, EARTH_NAME } from './countries'
@@ -406,7 +407,7 @@ function NewTopic({ categories, onCreated }) {
           onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), create())}
         />
         <EmojiPicker value={icon} onChange={setIcon} />
-        <input className="a-color" type="color" value={color} onChange={(e) => setColor(e.target.value)} aria-label="Topic colour" title="Topic colour" />
+        <ColorPicker value={color} onChange={setColor} />
       </div>
       {msg && <p className="a-msg">{msg}</p>}
       <div className="a-inline">
@@ -431,7 +432,7 @@ function CategoriesPanel({ categories, onChanged }) {
       <div className="a-list">
         {categories.map((c) => (
           <div key={c.id} className="a-row a-member">
-            <span><span style={{ color: c.color }}>●</span> {c.icon} {c.name}{c.added ? '' : ' · from the data files'}</span>
+            <span><span style={{ color: c.color }}>●</span> {c.icon} {c.name}</span>
             {c.added && <button className="a-btn danger" onClick={() => remove(c)}>Delete</button>}
           </div>
         ))}
