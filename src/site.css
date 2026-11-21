@@ -804,3 +804,55 @@ a.contrib:hover .contrib-name {
   font-size: .78rem;
   color: var(--muted);
 }
+
+/* sign-in extras: hints, small links, link styled as a button */
+.auth-hint {
+  color: var(--muted);
+  font-size: .78rem;
+  font-weight: 400;
+}
+
+.auth-link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font-size: .88rem;
+  cursor: pointer;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
+
+.auth-card form + .auth-link {
+  margin-top: 14px;
+}
+
+.auth-linkbtn {
+  display: block;
+  margin: 14px 0 12px;
+  text-align: center;
+  text-decoration: none;
+}
+
+/* edit page: account forms and the "editing one video" bar */
+.a-account {
+  display: grid;
+  gap: 4px;
+}
+
+.a-account input[type='password'],
+.a-account input[type='email'] {
+  width: 100%;
+}
+
+.a-focus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}

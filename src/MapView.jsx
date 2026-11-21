@@ -4,6 +4,7 @@ import { MapContainer, TileLayer, Pane, Marker, Popup, Tooltip, useMap } from 'r
 import L from 'leaflet'
 import { groupByCountry } from './groupByCountry'
 import { flagUrl, countryName, EARTH, EARTH_NAME } from './countries'
+import { useAuth } from './useAuth'
 
 // Esri "Canvas" basemaps: muted gray styles, no API key needed. A base layer plus a
 // transparent labels layer on top. (CARTO's dark tiles now require an API key.)
@@ -147,6 +148,8 @@ function FocusCity({ focusCity }) {
 function VideoOverlay({ video, onClose }) {
   const map = useMap()
   const ref = useRef(null)
+  const { role } = useAuth()
+  const canEdit = role === 'admin' || role === 'member' // only editors see the Edit button
 
   // keep clicks, drags and scrolling on the overlay from reaching the map underneath
   useEffect(() => {
@@ -185,6 +188,18 @@ function VideoOverlay({ video, onClose }) {
         <a href={video.url} target="_blank" rel="noreferrer" style={{ color: '#fff', font: '13px system-ui', whiteSpace: 'nowrap' }}>
           Open on YouTube ↗
         </a>
+        {canEdit && id && (
+          <a
+            href={`#/edit?video=${id}`}
+            title="Edit this video's country, place and details"
+            style={{
+              flex: 'none', height: 40, padding: '0 14px', borderRadius: 999, border: '2px solid #fff', background: 'rgba(255,255,255,.14)',
+              color: '#fff', font: '600 13px system-ui', display: 'inline-flex', alignItems: 'center', gap: 6, textDecoration: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            ✏️ Edit
+          </a>
+        )}
         <button
           onClick={onClose}
           aria-label="Close video"

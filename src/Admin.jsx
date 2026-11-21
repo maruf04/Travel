@@ -4,6 +4,8 @@ import { getCategories, getChannels, getVideos } from './api'
 import { useAuth } from './useAuth'
 import EmojiPicker from './EmojiPicker'
 import ColorPicker from './ColorPicker'
+import AuthPage from './AuthPage'
+import AccountPanel from './AccountPanel'
 import { defaultIcon, normalizeContact } from './contactLinks'
 import HeroScene from './HeroScene'
 import { countryName, flagUrl, EARTH, EARTH_NAME } from './countries'
@@ -146,96 +148,6 @@ function PlaceFields({ codes, placeName, setPlaceName, lat, setLat, lng, setLng,
   )
 }
 
-/* ---------- sign in / create account ---------- */
-
-function AuthPage() {
-  const [mode, setMode] = useState('in') // 'in' = sign in, 'up' = create account
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [show, setShow] = useState(false)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
-
-  // Switching between "Sign in" and "Create account" starts with an empty form.
-  function switchMode(next) {
-    setMode(next)
-    setEmail('')
-    setPassword('')
-    setShow(false)
-    setError('')
-    setNotice('')
-  }
-
-  async function submit(e) {
-    e.preventDefault()
-    setBusy(true)
-    setError('')
-    setNotice('')
-    if (mode === 'in') {
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password })
-      if (err) setError(err.message)
-    } else {
-      const { error: err } = await supabase.auth.signUp({ email, password })
-      if (err) setError(err.message)
-      else {
-        setPassword('')
-        setNotice('Account created! If you received a confirmation email, open it first. Then sign in. An admin will approve your account before you can edit.')
-      }
-    }
-    setBusy(false)
-  }
-
-  return (
-    <div className="auth-wrap">
-      <div className="auth-card">
-        <a className="auth-back" href="#/">← Back to the map</a>
-        <div className="auth-logo" aria-hidden="true">🌍</div>
-        <h1>{mode === 'in' ? 'Welcome back' : 'Join the team'}</h1>
-        <p className="auth-sub">
-          {mode === 'in'
-            ? 'Sign in to add videos and fix countries on the Vlogger World Tracker.'
-            : 'Create an account to help keep the map accurate.'}
-        </p>
-
-        <div className="auth-tabs" role="tablist">
-          <button type="button" role="tab" aria-selected={mode === 'in'} className={mode === 'in' ? 'on' : ''} onClick={() => switchMode('in')}>Sign in</button>
-          <button type="button" role="tab" aria-selected={mode === 'up'} className={mode === 'up' ? 'on' : ''} onClick={() => switchMode('up')}>Create account</button>
-        </div>
-
-        <form key={mode} onSubmit={submit}>
-          <label>
-            Email
-            <input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="username" />
-          </label>
-          <label>
-            Password
-            <div className="auth-pw">
-              <input
-                type={show ? 'text' : 'password'}
-                placeholder={mode === 'up' ? 'At least 8 characters' : 'Your password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={mode === 'up' ? 8 : undefined}
-                autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
-              />
-              <button type="button" onClick={() => setShow(!show)}>{show ? 'Hide' : 'Show'}</button>
-            </div>
-          </label>
-          <button className="auth-submit" disabled={busy}>
-            {busy ? 'Please wait…' : mode === 'in' ? 'Sign in' : 'Create account'}
-          </button>
-        </form>
-
-        {error && <p className="auth-error" role="alert">{error}</p>}
-        {notice && <p className="auth-notice">{notice}</p>}
-        <p className="auth-foot">New accounts must be approved by an admin before they can edit anything.</p>
-      </div>
-    </div>
-  )
-}
-
 /* ---------- edit one video ---------- */
 
 function Editor({ video, user, isAdmin, onClose, onSaved }) {
@@ -307,7 +219,26 @@ function Editor({ video, user, isAdmin, onClose, onSaved }) {
 
 /* ---------- list of videos ---------- */
 
-function VideoList({ videos, channels, user, isAdmin, onChanged }) {
+function VideoRow({ v, channelName, open, onToggle, user, isAdmin, onChanged }) {
+  return (
+    <div className="a-row">
+      <div className="a-head">
+        <img src={`https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`} alt="" width="96" height="54" loading="lazy" />
+        <div className="a-info">
+          <strong>{v.title}</strong>
+          <small>{channelName[v.channel] || v.channel}{v.edited ? ' · edited' : ''}{v.added ? ' · added here' : ''}</small>
+          <div className="a-chips">
+            {v.countries.length === 0 ? <small>No country</small> : v.countries.map((c) => <CountryChip key={c} code={c} />)}
+          </div>
+        </div>
+        <button className="a-btn" onClick={onToggle}>{open ? 'Close' : 'Edit'}</button>
+      </div>
+      {open && <Editor key={v.id} video={v} user={user} isAdmin={isAdmin} onClose={onToggle} onSaved={onChanged} />}
+    </div>
+  )
+}
+
+function VideoList({ videos, channels, user, isAdmin, onChanged, focusVideo, onClearFocus }) {
   const [mode, setMode] = useState('nocountry')
   const [q, setQ] = useState('')
   const [openId, setOpenId] = useState(null)
@@ -325,6 +256,24 @@ function VideoList({ videos, channels, user, isAdmin, onChanged }) {
       }),
     [videos, mode, q]
   )
+
+  // Opened from the "Edit" button in the map's video player: show just that video, ready to edit.
+  if (focusVideo) {
+    const v = videos.find((x) => x.id === focusVideo)
+    return (
+      <section className="panel">
+        <div className="a-focus">
+          <strong>Editing one video</strong>
+          <button className="a-btn" onClick={onClearFocus}>Show all videos</button>
+        </div>
+        <div className="a-list">
+          {videos.length === 0 && <p>Loading…</p>}
+          {videos.length > 0 && !v && <p>That video was not found. It may have been removed.</p>}
+          {v && <VideoRow v={v} channelName={channelName} open onToggle={onClearFocus} user={user} isAdmin={isAdmin} onChanged={onChanged} />}
+        </div>
+      </section>
+    )
+  }
 
   const modes = [
     ['nocountry', 'No country / Earth'],
@@ -345,20 +294,7 @@ function VideoList({ videos, channels, user, isAdmin, onChanged }) {
 
       <div className="a-list">
         {shown.slice(0, limit).map((v) => (
-          <div key={v.id} className="a-row">
-            <div className="a-head">
-              <img src={`https://i.ytimg.com/vi/${v.id}/mqdefault.jpg`} alt="" width="96" height="54" loading="lazy" />
-              <div className="a-info">
-                <strong>{v.title}</strong>
-                <small>{channelName[v.channel] || v.channel}{v.edited ? ' · edited' : ''}{v.added ? ' · added here' : ''}</small>
-                <div className="a-chips">
-                  {v.countries.length === 0 ? <small>No country</small> : v.countries.map((c) => <CountryChip key={c} code={c} />)}
-                </div>
-              </div>
-              <button className="a-btn" onClick={() => setOpenId(openId === v.id ? null : v.id)}>{openId === v.id ? 'Close' : 'Edit'}</button>
-            </div>
-            {openId === v.id && <Editor key={v.id} video={v} user={user} isAdmin={isAdmin} onClose={() => setOpenId(null)} onSaved={onChanged} />}
-          </div>
+          <VideoRow key={v.id} v={v} channelName={channelName} open={openId === v.id} onToggle={() => setOpenId(openId === v.id ? null : v.id)} user={user} isAdmin={isAdmin} onChanged={onChanged} />
         ))}
         {shown.length === 0 && <p>No videos match.</p>}
       </div>
@@ -432,7 +368,7 @@ function CategoriesPanel({ categories, onChanged }) {
       <div className="a-list">
         {categories.map((c) => (
           <div key={c.id} className="a-row a-member">
-            <span><span style={{ color: c.color }}>●</span> {c.icon} {c.name}</span>
+            <span><span style={{ color: c.color }}>●</span> {c.icon} {c.name}{c.added ? '' : ' · from the data files'}</span>
             {c.added && <button className="a-btn danger" onClick={() => remove(c)}>Delete</button>}
           </div>
         ))}
@@ -700,7 +636,7 @@ function useProfiles() {
   const [rows, setRows] = useState([])
   const [error, setError] = useState('')
   const load = useCallback(async () => {
-    const { data, error: err } = await supabase.from('profiles').select('user_id, email, role')
+    const { data, error: err } = await supabase.from('profiles').select('user_id, email, role, username')
     if (err) return setError(err.message)
     setError('')
     const order = { pending: 0, member: 1, admin: 2, declined: 3 } // people waiting come first
@@ -727,7 +663,7 @@ function Requests({ rows, setRole }) {
       <div className="a-list">
         {waiting.map((r) => (
           <div key={r.user_id} className="a-row a-member">
-            <span>{r.email || r.user_id}</span>
+            <span>{r.username ? `@${r.username} · ` : ''}{r.email || r.user_id}</span>
             <span className="a-inline">
               <button className="a-btn primary" onClick={() => setRole(r.user_id, 'member')}>Approve</button>
               <button className="a-btn" onClick={() => setRole(r.user_id, 'declined')}>Decline</button>
@@ -747,7 +683,7 @@ function Members({ rows, error, setRole, meId }) {
       <div className="a-list">
         {rows.map((r) => (
           <div key={r.user_id} className="a-row a-member">
-            <span>{r.email || r.user_id}{r.user_id === meId ? ' (you)' : ''}</span>
+            <span>{r.username ? `@${r.username} · ` : ''}{r.email || r.user_id}{r.user_id === meId ? ' (you)' : ''}</span>
             <select value={r.role} disabled={r.user_id === meId} onChange={(e) => setRole(r.user_id, e.target.value)}>
               {Object.entries(ROLE_LABELS).map(([id, label]) => <option key={id} value={id}>{label}</option>)}
             </select>
@@ -780,8 +716,14 @@ function ProfilePanel({ user }) {
           setName(data.display_name || '')
           setIcon(data.icon || defaultIcon(user.id))
           setContact((data.contact_url || '').replace(/^mailto:/i, ''))
+          setLoaded(true)
+        } else {
+          // no profile yet: suggest the username as the name to show
+          supabase.from('profiles').select('username').eq('user_id', user.id).maybeSingle().then(({ data: p }) => {
+            if (p?.username) setName(p.username)
+            setLoaded(true)
+          })
         }
-        setLoaded(true)
       })
   }, [user.id])
 
@@ -837,9 +779,11 @@ function ProfilePanel({ user }) {
 
 /* ---------- signed-in area ---------- */
 
-function Workspace({ user, role }) {
+function Workspace({ user, role, focusVideo }) {
   const isAdmin = role === 'admin'
   const [tab, setTab] = useState('videos')
+  const [focus, setFocus] = useState(focusVideo || null)
+  useEffect(() => setFocus(focusVideo || null), [focusVideo])
   const [categories, setCategories] = useState([])
   const [channels, setChannels] = useState([])
   const [videos, setVideos] = useState([])
@@ -868,6 +812,7 @@ function Workspace({ user, role }) {
     ['add', '➕ Add video'],
     ['channels', '📺 Channels'],
     ['profile', '👤 My profile'],
+    ['account', '⚙️ Account'],
     ...(isAdmin ? [['topics', '🏷️ Topics'], ['members', `👥 Members${waiting ? ` (${waiting})` : ''}`]] : []),
   ]
 
@@ -880,10 +825,11 @@ function Workspace({ user, role }) {
         ))}
       </nav>
       {error && <p className="error">{error}</p>}
-      {tab === 'videos' && <VideoList videos={videos} channels={channels} user={user} isAdmin={isAdmin} onChanged={load} />}
+      {tab === 'videos' && <VideoList videos={videos} channels={channels} user={user} isAdmin={isAdmin} onChanged={load} focusVideo={focus} onClearFocus={() => { setFocus(null); if (window.location.hash.includes('video=')) window.history.replaceState(null, '', '#/edit') }} />}
       {tab === 'add' && <AddVideo categories={categories} channels={channels} existingIds={existingIds} isAdmin={isAdmin} onAdded={load} />}
       {tab === 'channels' && <ChannelsPanel />}
       {tab === 'profile' && <ProfilePanel user={user} />}
+      {tab === 'account' && <AccountPanel user={user} />}
       {tab === 'topics' && isAdmin && <CategoriesPanel categories={categories} onChanged={load} />}
       {tab === 'members' && isAdmin && <Members rows={profiles.rows} error={profiles.error} setRole={profiles.setRole} meId={user.id} />}
       <datalist id="country-list">
@@ -895,7 +841,7 @@ function Workspace({ user, role }) {
 
 /* ---------- page ---------- */
 
-export default function Admin() {
+export default function Admin({ focusVideo }) {
   const { enabled, session, role, loading } = useAuth()
   const canEdit = role === 'admin' || role === 'member'
 
@@ -917,7 +863,7 @@ export default function Admin() {
   } else if (!canEdit) {
     body = <p className="error">This account has no access yet. Ask an admin to add you.</p>
   } else {
-    body = <Workspace user={session.user} role={role} />
+    body = <Workspace user={session.user} role={role} focusVideo={focusVideo} />
   }
 
   return (

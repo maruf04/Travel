@@ -10,6 +10,7 @@
 --   categories        the topics (travel, history, ...). Add one with a new row, no code or JSON needed
 --   channels          YouTube channels
 --   videos            all videos
+--   profiles.username unique usernames: people can sign in with a username or an email
 --   contributor_profiles  how each editor appears in the site footer (name, icon, contact link)
 --   public_contributors   a view listing people who added videos, for the footer
 --   channels_extra    older table for channels added on the edit page (kept so nothing breaks; replaced by channels)
@@ -35,6 +36,13 @@ alter table profiles drop constraint if exists profiles_role_check;
 alter table profiles add constraint profiles_role_check
   check (role in ('admin', 'member', 'pending', 'declined'));
 alter table profiles alter column role set default 'pending';
+
+-- unique usernames (stored in lowercase; "Rafi_99" and "rafi_99" are the same name)
+alter table profiles add column if not exists username text;
+alter table profiles drop constraint if exists profiles_username_format;
+alter table profiles add constraint profiles_username_format
+  check (username is null or username ~ '^[a-z0-9_]{3,20}$');
+create unique index if not exists profiles_username_key on profiles (lower(username));
 
 create table if not exists video_overrides (
   video_id text primary key,                 -- the YouTube video ID
@@ -130,15 +138,70 @@ language sql stable security definer set search_path = public as $$
 $$;
 
 -- Every new sign-up automatically gets a "pending" profile (no access until an admin approves).
+-- The username typed on the sign-up form arrives in the account's metadata.
 create or replace function public.handle_new_user() returns trigger
 language plpgsql security definer set search_path = public as $$
+declare
+  u text := lower(trim(coalesce(new.raw_user_meta_data->>'username', '')));
 begin
-  insert into public.profiles (user_id, email, role)
-  values (new.id, new.email, 'pending')
+  if u !~ '^[a-z0-9_]{3,20}$' or exists (select 1 from public.profiles where lower(username) = u) then
+    u := null; -- invalid or taken: the account is still created; the person can pick a username later
+  end if;
+  insert into public.profiles (user_id, email, role, username)
+  values (new.id, new.email, 'pending', u)
   on conflict (user_id) do nothing;
   return new;
 end;
 $$;
+
+-- Keep profiles.email in step when someone changes their email address.
+create or replace function public.sync_profile_email() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  update public.profiles set email = new.email where user_id = new.id;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_email_changed on auth.users;
+create trigger on_auth_user_email_changed
+  after update of email on auth.users
+  for each row when (old.email is distinct from new.email)
+  execute function public.sync_profile_email();
+
+-- Is this username free? (used by the sign-up form)
+create or replace function public.username_available(p_username text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select not exists (select 1 from public.profiles where lower(username) = lower(trim(p_username)))
+$$;
+
+-- Which email belongs to this username? (used to sign in with a username)
+-- Note: this lets anyone who knows a username find that account's email address.
+create or replace function public.login_email(p_username text) returns text
+language sql stable security definer set search_path = public as $$
+  select email from public.profiles where lower(username) = lower(trim(p_username)) limit 1
+$$;
+
+-- Change my own username (checks the format and that it is free).
+create or replace function public.set_my_username(p_username text) returns void
+language plpgsql security definer set search_path = public as $$
+declare
+  u text := lower(trim(p_username));
+begin
+  if auth.uid() is null then raise exception 'Please sign in first.'; end if;
+  if u !~ '^[a-z0-9_]{3,20}$' then
+    raise exception 'Usernames are 3 to 20 characters: lowercase letters, numbers and underscores.';
+  end if;
+  if exists (select 1 from public.profiles where lower(username) = u and user_id <> auth.uid()) then
+    raise exception 'That username is already taken.';
+  end if;
+  update public.profiles set username = u where user_id = auth.uid();
+end;
+$$;
+
+grant execute on function public.username_available(text) to anon, authenticated;
+grant execute on function public.login_email(text) to anon, authenticated;
+grant execute on function public.set_my_username(text) to authenticated;
 
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created

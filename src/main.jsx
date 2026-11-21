@@ -6,8 +6,10 @@ import './admin.css'
 import './site.css'
 import App from './App.jsx'
 import Admin from './Admin.jsx'
+import ResetPassword from './ResetPassword.jsx'
+import { parseRoute } from './authHelpers'
 
-// The edit page lives at  https://maruf04.github.io/Travel/#/edit  (#/admin also works)
+// Pages:  #/edit (sign in + edit)   #/edit?video=ID (edit one video)   #/reset (choose a new password)
 function Root() {
   const [hash, setHash] = useState(window.location.hash)
   useEffect(() => {
@@ -15,7 +17,10 @@ function Root() {
     window.addEventListener('hashchange', onHash)
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
-  return hash === '#/edit' || hash === '#/admin' ? <Admin /> : <App />
+  const { path, params } = parseRoute(hash)
+  if (path === '/reset') return <ResetPassword />
+  if (path === '/edit' || path === '/admin') return <Admin focusVideo={params.get('video')} />
+  return <App />
 }
 
 createRoot(document.getElementById('root')).render(
