@@ -25,8 +25,9 @@ For the deployed site, add the same two values as repository secrets
 A new database is set up by running, in the Supabase SQL editor:
 
 1. [`supabase/schema.sql`](supabase/schema.sql): the tables and their access rules
-2. [`supabase/seed.sql`](supabase/seed.sql): the original topics, channels and videos (optional;
-   it only adds rows that are missing, so it is safe to run again)
+2. [`supabase/seed.sql`](supabase/seed.sql): a backup of all topics, channels, videos and corrections,
+   exported from the live database (it only adds rows that are missing, so it is safe to run again).
+   User accounts aren't in it: people sign up again and an admin approves them.
 
 ## Adding and editing videos
 

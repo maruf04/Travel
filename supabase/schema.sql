@@ -6,7 +6,7 @@
 --
 -- What it creates
 --   profiles          who can do what (admin / member / pending / declined)
---   video_overrides   corrections to the country/place of videos in public/data
+--   video_overrides   corrections to the country/place of videos (made on the edit page)
 --   categories        the topics (travel, history, ...). Add one with a new row, no code or JSON needed
 --   channels          YouTube channels
 --   videos            all videos
