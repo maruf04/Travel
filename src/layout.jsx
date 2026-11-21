@@ -11,34 +11,14 @@ import { ABOUT, getContributors, defaultIcon, safeHref } from './content'
 // 1. HeroScene   (was src/HeroScene.jsx)
 // ────────────────────────────────────────────────────────────────────────────
 
-// Banner artwork: a dotted world map with glowing travel routes between places from the videos.
+// Banner artwork: a dotted world map with a faint latitude/longitude grid.
 // The dots come from public/hero-dots.svg (made from the real country borders in world.json,
-// drawn as a mask so CSS can colour it); the grid, routes and city points are drawn here on top,
-// in the same coordinates. Colours come from CSS variables in styles.css (dark and light theme).
+// drawn as a mask so CSS can colour it); the grid is drawn here on top, in the same coordinates.
+// Colours come from CSS variables in styles.css (dark and light theme).
 
 // Same projection as hero-dots.svg: longitude -180..180, latitude 75..-48, 4 px per degree.
 const MAP_W = 1440
 const MAP_H = 492
-const xy = ([lon, lat]) => [(lon + 180) * 4, (75 - lat) * 4]
-
-// [longitude, latitude] of places that appear in the videos
-const CITIES = {
-  dhaka: [90.41, 23.81], istanbul: [28.98, 41.01], almaty: [76.95, 43.24], moscow: [37.62, 55.75],
-  yakutsk: [129.68, 62.03], nairobi: [36.82, -1.29], boston: [-71.06, 42.36], jakarta: [106.85, -6.21],
-  doha: [51.53, 25.29], sarajevo: [18.41, 43.86],
-}
-const ROUTES = [
-  ['dhaka', 'istanbul'], ['istanbul', 'boston'], ['dhaka', 'almaty'], ['almaty', 'moscow'],
-  ['moscow', 'yakutsk'], ['dhaka', 'jakarta'], ['istanbul', 'doha'], ['doha', 'nairobi'], ['istanbul', 'sarajevo'],
-]
-
-// a gentle curve between two places, bowing upwards like a flight path
-function arc(a, b) {
-  const [x1, y1] = xy(CITIES[a])
-  const [x2, y2] = xy(CITIES[b])
-  const lift = Math.hypot(x2 - x1, y2 - y1) * 0.28
-  return `M${x1} ${y1} Q${(x1 + x2) / 2} ${(y1 + y2) / 2 - lift} ${x2} ${y2}`
-}
 
 // faint lines every 30 degrees of longitude and latitude
 const GRID = [
@@ -53,17 +33,6 @@ export function HeroScene() {
         <div className="hero-dots" style={{ '--dots': `url(${import.meta.env.BASE_URL}hero-dots.svg)` }} />
         <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="none" focusable="false">
           <path className="hero-grid" d={GRID} />
-          {ROUTES.map(([a, b], i) => (
-            <g key={a + b}>
-              <path className="hero-route" d={arc(a, b)} />
-              {/* a short light that travels along the route */}
-              <path className="hero-route-light" d={arc(a, b)} pathLength="100" style={{ animationDelay: `${-i * 1.7}s`, animationDuration: `${7 + (i % 4)}s` }} />
-            </g>
-          ))}
-          {Object.entries(CITIES).map(([name, at]) => {
-            const [x, y] = xy(at)
-            return <circle key={name} className="hero-city" cx={x} cy={y} r="4.5" />
-          })}
         </svg>
       </div>
     </div>

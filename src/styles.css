@@ -215,15 +215,12 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
 /* 3. Site look: banner, footer, country info, pop-up pickers, sign-in screens   (was src/site.css) */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-/* ---------- banner at the top of the page: dotted world map with travel routes ---------- */
+/* ---------- banner at the top of the page: dotted world map ---------- */
 .hero {
   /* night atlas (dark theme) */
   --hm-bg: radial-gradient(120% 140% at 30% 30%, #12304a 0%, #0c1c30 45%, #081321 100%);
   --hm-dot: rgba(128, 176, 222, .34);
   --hm-grid: rgba(128, 176, 222, .10);
-  --hm-route: rgba(255, 140, 100, .30);
-  --hm-light: #ffb08a;
-  --hm-city: #ffc6a8;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -239,9 +236,6 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
   --hm-bg: radial-gradient(120% 140% at 30% 30%, #ffffff 0%, #eef4fa 50%, #e2ecf5 100%);
   --hm-dot: rgba(38, 84, 128, .24);
   --hm-grid: rgba(38, 84, 128, .08);
-  --hm-route: rgba(217, 72, 31, .30);
-  --hm-light: #e2562c;
-  --hm-city: #d9481f;
 }
 
 /* the map sits on the left, behind the title, a little larger than the banner so it fills it nicely */
@@ -282,37 +276,6 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
   stroke: var(--hm-grid);
   stroke-width: 1;
   vector-effect: non-scaling-stroke;
-}
-
-.hero-route {
-  fill: none;
-  stroke: var(--hm-route);
-  stroke-width: 1.4;
-  vector-effect: non-scaling-stroke;
-}
-
-/* a short light travelling along each route (path length is set to 100 in layout.jsx) */
-.hero-route-light {
-  fill: none;
-  stroke: var(--hm-light);
-  stroke-width: 2.2;
-  stroke-linecap: round;
-  stroke-dasharray: 9 91;
-  stroke-dashoffset: 100;
-  vector-effect: non-scaling-stroke;
-  filter: drop-shadow(0 0 3px var(--hm-light));
-  animation: hero-travel 8s linear infinite;
-}
-
-.hero-city {
-  fill: var(--hm-city);
-  filter: drop-shadow(0 0 4px var(--hm-city));
-}
-
-@keyframes hero-travel {
-  to {
-    stroke-dashoffset: 0;
-  }
 }
 
 /* a light veil on the left so the title stays readable while the map still shows through */
@@ -376,6 +339,7 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-top: 12px; /* a little lower than the top edge, closer to the title */
 }
 
 .hero-btn {
@@ -399,14 +363,6 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
   border-color: var(--accent);
   color: var(--accent-text);
   font-weight: 600;
-}
-
-/* no moving lights for people who prefer less motion */
-@media (prefers-reduced-motion: reduce) {
-  .hero-route-light {
-    animation: none;
-    opacity: 0;
-  }
 }
 
 /* ---------- country description under the map ---------- */
