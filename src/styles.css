@@ -215,14 +215,15 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
 /* 3. Site look: banner, footer, country info, pop-up pickers, sign-in screens   (was src/site.css) */
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-/* ---------- banner at the top of the page: sky, sun, clouds and birds ---------- */
+/* ---------- banner at the top of the page: dotted world map with travel routes ---------- */
 .hero {
-  /* dusk colours (dark theme) */
-  --hs-sky-top: #0b1b3a;
-  --hs-sky-bottom: #2a5f7c;
-  --hs-sun: #f4f1d0;
-  --hs-cloud: rgba(255, 255, 255, .22);
-  --hs-bird: #cfd8e0;
+  /* night atlas (dark theme) */
+  --hm-bg: radial-gradient(120% 140% at 30% 30%, #12304a 0%, #0c1c30 45%, #081321 100%);
+  --hm-dot: rgba(128, 176, 222, .34);
+  --hm-grid: rgba(128, 176, 222, .10);
+  --hm-route: rgba(255, 140, 100, .30);
+  --hm-light: #ffb08a;
+  --hm-city: #ffc6a8;
   position: relative;
   overflow: hidden;
   display: flex;
@@ -230,34 +231,98 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
   margin-bottom: 16px;
   border: 1px solid var(--line);
   border-radius: 18px;
-  background: var(--card);
+  background: var(--hm-bg);
 }
 
 [data-theme='light'] .hero {
-  /* daylight colours */
-  --hs-sky-top: #6fb8ee;
-  --hs-sky-bottom: #dff2ff;
-  --hs-sun: #ffd75e;
-  --hs-cloud: rgba(255, 255, 255, .85);
-  --hs-bird: #35506b;
+  /* paper atlas (light theme) */
+  --hm-bg: radial-gradient(120% 140% at 30% 30%, #ffffff 0%, #eef4fa 50%, #e2ecf5 100%);
+  --hm-dot: rgba(38, 84, 128, .24);
+  --hm-grid: rgba(38, 84, 128, .08);
+  --hm-route: rgba(217, 72, 31, .30);
+  --hm-light: #e2562c;
+  --hm-city: #d9481f;
 }
 
+/* the map sits on the left, behind the title, a little larger than the banner so it fills it nicely */
 .hero-scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.hero-map {
+  position: absolute;
+  top: -22%;
+  left: -2%;
+  height: 150%;
+  aspect-ratio: 1440 / 492; /* same shape as hero-dots.svg */
+  /* fade out on the right, so the map has no hard edge where it ends */
+  -webkit-mask-image: linear-gradient(90deg, #000 70%, transparent 100%);
+  mask-image: linear-gradient(90deg, #000 70%, transparent 100%);
+}
+
+.hero-dots,
+.hero-map svg {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
 }
 
-/* soft fade on the left so the title stays easy to read over the picture */
+/* the dots are a mask, so their colour follows the theme */
+.hero-dots {
+  background: var(--hm-dot);
+  -webkit-mask: var(--dots) center / 100% 100% no-repeat;
+  mask: var(--dots) center / 100% 100% no-repeat;
+}
+
+.hero-grid {
+  fill: none;
+  stroke: var(--hm-grid);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+.hero-route {
+  fill: none;
+  stroke: var(--hm-route);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+}
+
+/* a short light travelling along each route (path length is set to 100 in layout.jsx) */
+.hero-route-light {
+  fill: none;
+  stroke: var(--hm-light);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-dasharray: 9 91;
+  stroke-dashoffset: 100;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 3px var(--hm-light));
+  animation: hero-travel 8s linear infinite;
+}
+
+.hero-city {
+  fill: var(--hm-city);
+  filter: drop-shadow(0 0 4px var(--hm-city));
+}
+
+@keyframes hero-travel {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* a light veil on the left so the title stays readable while the map still shows through */
 .hero::before {
   content: '';
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  background: linear-gradient(90deg, rgba(0, 0, 0, .25) 0%, transparent 60%);
-  background: linear-gradient(90deg, color-mix(in srgb, var(--card) 78%, transparent) 0%, color-mix(in srgb, var(--card) 40%, transparent) 40%, transparent 68%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--card) 35%, transparent) 0%, color-mix(in srgb, var(--card) 15%, transparent) 50%, transparent 75%);
 }
 
 .hero-inner {
@@ -276,6 +341,12 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
 .hero h1 {
   margin: 0 0 6px;
   font-size: clamp(1.5rem, 4vw, 2.1rem);
+}
+
+/* a soft glow in the banner's own colour behind the text, so it reads well over the map */
+.hero h1,
+.hero p {
+  text-shadow: 0 0 14px var(--card), 0 0 4px var(--card);
 }
 
 .hero p {
@@ -330,41 +401,11 @@ code { font-size:.85em; padding:1px 5px; border-radius:5px; background:var(--rai
   font-weight: 600;
 }
 
-/* gentle movement: clouds drift, birds glide */
-.hs-cloud {
-  animation: hs-cloud 40s ease-in-out infinite alternate;
-}
-
-.hs-c2 {
-  animation-duration: 55s;
-}
-
-.hs-c3 {
-  animation-duration: 48s;
-  animation-direction: alternate-reverse;
-}
-
-.hs-birds {
-  animation: hs-birds 14s ease-in-out infinite alternate;
-}
-
-@keyframes hs-cloud {
-  to {
-    transform: translateX(70px);
-  }
-}
-
-@keyframes hs-birds {
-  to {
-    transform: translate(40px, -8px);
-  }
-}
-
+/* no moving lights for people who prefer less motion */
 @media (prefers-reduced-motion: reduce) {
-
-  .hs-cloud,
-  .hs-birds {
+  .hero-route-light {
     animation: none;
+    opacity: 0;
   }
 }
 

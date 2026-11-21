@@ -1,5 +1,5 @@
 // Layout: the parts around the map page.
-//   1. HeroScene    banner artwork (sky, sun/moon, clouds, birds), also used on the edit page
+//   1. HeroScene    banner artwork (dotted world map with travel routes), also used on the edit page
 //   2. SiteHeader   banner with the title, login button and theme switch
 //   3. Footer       about you, contact links and contributors
 
@@ -11,53 +11,62 @@ import { ABOUT, getContributors, defaultIcon, safeHref } from './content'
 // 1. HeroScene   (was src/HeroScene.jsx)
 // ────────────────────────────────────────────────────────────────────────────
 
-// Banner artwork: a soft sky with the sun, drifting clouds and a few birds.
-// Pure SVG (no images to download). Colours come from CSS variables in styles.css,
-// so it has a daylight palette (light theme) and a dusk palette with a moon (dark theme).
+// Banner artwork: a dotted world map with glowing travel routes between places from the videos.
+// The dots come from public/hero-dots.svg (made from the real country borders in world.json,
+// drawn as a mask so CSS can colour it); the grid, routes and city points are drawn here on top,
+// in the same coordinates. Colours come from CSS variables in styles.css (dark and light theme).
 
-// [x, y, size] of each bird
-const BIRDS = [
-  [600, 70, 1.1], [642, 54, 0.9], [680, 76, 0.8], [900, 150, 1], [1110, 108, 0.9],
+// Same projection as hero-dots.svg: longitude -180..180, latitude 75..-48, 4 px per degree.
+const MAP_W = 1440
+const MAP_H = 492
+const xy = ([lon, lat]) => [(lon + 180) * 4, (75 - lat) * 4]
+
+// [longitude, latitude] of places that appear in the videos
+const CITIES = {
+  dhaka: [90.41, 23.81], istanbul: [28.98, 41.01], almaty: [76.95, 43.24], moscow: [37.62, 55.75],
+  yakutsk: [129.68, 62.03], nairobi: [36.82, -1.29], boston: [-71.06, 42.36], jakarta: [106.85, -6.21],
+  doha: [51.53, 25.29], sarajevo: [18.41, 43.86],
+}
+const ROUTES = [
+  ['dhaka', 'istanbul'], ['istanbul', 'boston'], ['dhaka', 'almaty'], ['almaty', 'moscow'],
+  ['moscow', 'yakutsk'], ['dhaka', 'jakarta'], ['istanbul', 'doha'], ['doha', 'nairobi'], ['istanbul', 'sarajevo'],
 ]
+
+// a gentle curve between two places, bowing upwards like a flight path
+function arc(a, b) {
+  const [x1, y1] = xy(CITIES[a])
+  const [x2, y2] = xy(CITIES[b])
+  const lift = Math.hypot(x2 - x1, y2 - y1) * 0.28
+  return `M${x1} ${y1} Q${(x1 + x2) / 2} ${(y1 + y2) / 2 - lift} ${x2} ${y2}`
+}
+
+// faint lines every 30 degrees of longitude and latitude
+const GRID = [
+  ...[-150, -120, -90, -60, -30, 0, 30, 60, 90, 120, 150].map((lon) => `M${(lon + 180) * 4} 0V${MAP_H}`),
+  ...[60, 30, 0, -30].map((lat) => `M0 ${(75 - lat) * 4}H${MAP_W}`),
+].join('')
 
 export function HeroScene() {
   return (
-    <svg className="hero-scene" viewBox="0 0 1200 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-      <defs>
-        <linearGradient id="hs-sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" style={{ stopColor: 'var(--hs-sky-top)' }} />
-          <stop offset="1" style={{ stopColor: 'var(--hs-sky-bottom)' }} />
-        </linearGradient>
-        <radialGradient id="hs-glow">
-          <stop offset="0" style={{ stopColor: 'var(--hs-sun)', stopOpacity: 0.55 }} />
-          <stop offset="1" style={{ stopColor: 'var(--hs-sun)', stopOpacity: 0 }} />
-        </radialGradient>
-      </defs>
-
-      <rect width="1200" height="240" fill="url(#hs-sky)" />
-
-      {/* sun (moon in the dark theme) */}
-      <circle cx="800" cy="84" r="90" fill="url(#hs-glow)" />
-      <circle cx="800" cy="84" r="29" style={{ fill: 'var(--hs-sun)' }} />
-
-      {/* clouds */}
-      <g className="hs-cloud hs-c1" style={{ fill: 'var(--hs-cloud)' }}>
-        <ellipse cx="470" cy="150" rx="46" ry="11" /><ellipse cx="500" cy="142" rx="30" ry="11" /><ellipse cx="444" cy="144" rx="24" ry="9" />
-      </g>
-      <g className="hs-cloud hs-c2" style={{ fill: 'var(--hs-cloud)' }}>
-        <ellipse cx="980" cy="170" rx="40" ry="9" /><ellipse cx="1006" cy="163" rx="26" ry="9" />
-      </g>
-      <g className="hs-cloud hs-c3" style={{ fill: 'var(--hs-cloud)' }}>
-        <ellipse cx="260" cy="190" rx="36" ry="8" /><ellipse cx="282" cy="184" rx="22" ry="8" />
-      </g>
-
-      {/* birds */}
-      <g className="hs-birds" fill="none" style={{ stroke: 'var(--hs-bird)' }} strokeWidth="1.8" strokeLinecap="round">
-        {BIRDS.map(([x, y, s], i) => (
-          <path key={i} d={`M${x} ${y} q${6 * s} ${-7 * s} ${12 * s} 0 q${6 * s} ${-7 * s} ${12 * s} 0`} />
-        ))}
-      </g>
-    </svg>
+    <div className="hero-scene" aria-hidden="true">
+      <div className="hero-map">
+        <div className="hero-dots" style={{ '--dots': `url(${import.meta.env.BASE_URL}hero-dots.svg)` }} />
+        <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="none" focusable="false">
+          <path className="hero-grid" d={GRID} />
+          {ROUTES.map(([a, b], i) => (
+            <g key={a + b}>
+              <path className="hero-route" d={arc(a, b)} />
+              {/* a short light that travels along the route */}
+              <path className="hero-route-light" d={arc(a, b)} pathLength="100" style={{ animationDelay: `${-i * 1.7}s`, animationDuration: `${7 + (i % 4)}s` }} />
+            </g>
+          ))}
+          {Object.entries(CITIES).map(([name, at]) => {
+            const [x, y] = xy(at)
+            return <circle key={name} className="hero-city" cx={x} cy={y} r="4.5" />
+          })}
+        </svg>
+      </div>
+    </div>
   )
 }
 
