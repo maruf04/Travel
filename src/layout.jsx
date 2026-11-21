@@ -1,6 +1,112 @@
+// Layout: the parts around the map page.
+//   1. HeroScene    banner artwork (sky, sun/moon, clouds, birds), also used on the edit page
+//   2. SiteHeader   banner with the title, login button and theme switch
+//   3. Footer       about you, contact links and contributors
+
 import { useEffect, useState } from 'react'
-import { ABOUT } from './about'
-import { getContributors, defaultIcon, safeHref } from './contributors'
+import { useAuth } from './hooks'
+import { ABOUT, getContributors, defaultIcon, safeHref } from './content'
+
+// ────────────────────────────────────────────────────────────────────────────
+// 1. HeroScene   (was src/HeroScene.jsx)
+// ────────────────────────────────────────────────────────────────────────────
+
+// Banner artwork: a soft sky with the sun, drifting clouds and a few birds.
+// Pure SVG (no images to download). Colours come from CSS variables in styles.css,
+// so it has a daylight palette (light theme) and a dusk palette with a moon (dark theme).
+
+// [x, y, size] of each bird
+const BIRDS = [
+  [600, 70, 1.1], [642, 54, 0.9], [680, 76, 0.8], [900, 150, 1], [1110, 108, 0.9],
+]
+
+export function HeroScene() {
+  return (
+    <svg className="hero-scene" viewBox="0 0 1200 240" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <defs>
+        <linearGradient id="hs-sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" style={{ stopColor: 'var(--hs-sky-top)' }} />
+          <stop offset="1" style={{ stopColor: 'var(--hs-sky-bottom)' }} />
+        </linearGradient>
+        <radialGradient id="hs-glow">
+          <stop offset="0" style={{ stopColor: 'var(--hs-sun)', stopOpacity: 0.55 }} />
+          <stop offset="1" style={{ stopColor: 'var(--hs-sun)', stopOpacity: 0 }} />
+        </radialGradient>
+      </defs>
+
+      <rect width="1200" height="240" fill="url(#hs-sky)" />
+
+      {/* sun (moon in the dark theme) */}
+      <circle cx="800" cy="84" r="90" fill="url(#hs-glow)" />
+      <circle cx="800" cy="84" r="29" style={{ fill: 'var(--hs-sun)' }} />
+
+      {/* clouds */}
+      <g className="hs-cloud hs-c1" style={{ fill: 'var(--hs-cloud)' }}>
+        <ellipse cx="470" cy="150" rx="46" ry="11" /><ellipse cx="500" cy="142" rx="30" ry="11" /><ellipse cx="444" cy="144" rx="24" ry="9" />
+      </g>
+      <g className="hs-cloud hs-c2" style={{ fill: 'var(--hs-cloud)' }}>
+        <ellipse cx="980" cy="170" rx="40" ry="9" /><ellipse cx="1006" cy="163" rx="26" ry="9" />
+      </g>
+      <g className="hs-cloud hs-c3" style={{ fill: 'var(--hs-cloud)' }}>
+        <ellipse cx="260" cy="190" rx="36" ry="8" /><ellipse cx="282" cy="184" rx="22" ry="8" />
+      </g>
+
+      {/* birds */}
+      <g className="hs-birds" fill="none" style={{ stroke: 'var(--hs-bird)' }} strokeWidth="1.8" strokeLinecap="round">
+        {BIRDS.map(([x, y, s], i) => (
+          <path key={i} d={`M${x} ${y} q${6 * s} ${-7 * s} ${12 * s} 0 q${6 * s} ${-7 * s} ${12 * s} 0`} />
+        ))}
+      </g>
+    </svg>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 2. SiteHeader   (was src/SiteHeader.jsx)
+// ────────────────────────────────────────────────────────────────────────────
+
+// Banner at the top of the map page: title, tagline, login button and theme switch.
+export function SiteHeader({ theme, toggleTheme }) {
+  const { enabled, session, role, pending, loading } = useAuth()
+  const canEdit = role === 'admin' || role === 'member'
+
+  let button = null
+  if (enabled && !loading) {
+    if (!session) {
+      button = <a className="hero-btn primary" href="#/edit">🔑 Log in</a>
+    } else if (role === 'admin' && pending > 0) {
+      button = (
+        <a className="hero-btn primary" href="#/edit" title="Accounts waiting for your approval">
+          🔔 {pending} {pending === 1 ? 'request' : 'requests'}
+        </a>
+      )
+    } else {
+      button = <a className="hero-btn" href="#/edit">{canEdit ? '✏️ Edit' : '👤 My account'}</a>
+    }
+  }
+
+  return (
+    <header className="hero">
+      <HeroScene />
+      <div className="hero-inner">
+        <div className="hero-text">
+          <h1>🌍 Vlogger World Tracker</h1>
+          <p>Travel, history, geopolitics, inventions and culture from YouTube, on one map.</p>
+        </div>
+        <div className="hero-actions">
+          {button}
+          <button className="theme-toggle" onClick={toggleTheme} aria-label="Toggle light and dark theme" title="Toggle theme">
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
+        </div>
+      </div>
+    </header>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 3. Footer   (was src/Footer.jsx)
+// ────────────────────────────────────────────────────────────────────────────
 
 const svgProps = {
   xmlns: 'http://www.w3.org/2000/svg',
@@ -74,8 +180,8 @@ const ICONS = {
   ),
 }
 
-// Bar at the bottom of the page: about you (edit src/about.js), the people who add videos, and credits.
-export default function Footer() {
+// Bar at the bottom of the page: about you (edit ABOUT in src/content.js), the people who add videos, and credits.
+export function Footer() {
   const a = ABOUT
   const [contributors, setContributors] = useState([])
   useEffect(() => {

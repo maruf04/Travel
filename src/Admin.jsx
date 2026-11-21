@@ -1,14 +1,15 @@
+// The edit page (#/edit). After signing in, members can correct or add videos and edit their
+// profile; admins can also manage topics and approve or decline new members.
+// Tabs: Videos · Add video · Channels · Profile · Account · Topics (admin) · Members (admin).
+// Changes are saved in the Supabase database; the map shows them on top of the JSON files.
+
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase } from './supabase'
-import { getCategories, getChannels, getVideos } from './api'
-import { useAuth } from './useAuth'
-import EmojiPicker from './EmojiPicker'
-import ColorPicker from './ColorPicker'
-import AuthPage from './AuthPage'
-import AccountPanel from './AccountPanel'
-import { defaultIcon, normalizeContact } from './contactLinks'
-import HeroScene from './HeroScene'
-import { countryName, flagUrl, EARTH, EARTH_NAME } from './countries'
+import { supabase, getCategories, getChannels, getVideos, countryName, flagUrl, EARTH, EARTH_NAME } from './data'
+import { useAuth } from './hooks'
+import { EmojiPicker, ColorPicker } from './pickers'
+import { AuthPage, AccountPanel } from './auth'
+import { defaultIcon, normalizeContact } from './content'
+import { HeroScene } from './layout'
 
 /* ---------- helpers ---------- */
 

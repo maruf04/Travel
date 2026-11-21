@@ -1,14 +1,14 @@
+// The public map page: banner, topic tabs, channel filter, country bar and timeline
+// (History tab), the map with its sidebar, country info and footer.
+// It loads all data once (data.js), then filters it by topic, channel, country and year.
+
 import { useEffect, useMemo, useState } from 'react'
 import MapView from './MapView'
-import CountryVideos from './CountryVideos'
+import { CountryVideos, CountryInfo } from './CountryPanel'
 import Timeline from './Timeline'
-import { useMapSelection } from './useMapSelection'
-import { useTheme } from './useTheme'
-import { getCategories, getChannels, getVideos, getWorld, toStops, channelLogo } from './api'
-import { flagUrl, EARTH_NAME } from './countries'
-import SiteHeader from './SiteHeader'
-import CountryInfo from './CountryInfo'
-import Footer from './Footer'
+import { useMapSelection, useTheme } from './hooks'
+import { getCategories, getChannels, getVideos, getWorld, toStops, channelLogo, flagUrl, EARTH_NAME } from './data'
+import { SiteHeader, Footer } from './layout'
 
 const MAP_HEIGHT = 'max(520px, 72vh)'
 const ALL = 'all'

@@ -1,10 +1,13 @@
+// The map (Leaflet): flag markers grouped by country and city, country shading by number of
+// videos, the "Earth" tint for whole-world videos, and the video player that opens over the map.
+// Controlled by App.jsx through useMapSelection() (hooks.js).
+
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Pane, Marker, Popup, Tooltip, useMap } from 'react-leaflet'
 import L from 'leaflet'
-import { groupByCountry } from './groupByCountry'
-import { flagUrl, countryName, EARTH, EARTH_NAME } from './countries'
-import { useAuth } from './useAuth'
+import { groupByCountry, flagUrl, countryName, EARTH, EARTH_NAME } from './data'
+import { useAuth } from './hooks'
 
 // Esri "Canvas" basemaps: muted gray styles, no API key needed. A base layer plus a
 // transparent labels layer on top. (CARTO's dark tiles now require an API key.)

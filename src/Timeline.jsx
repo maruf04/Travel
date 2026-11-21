@@ -1,5 +1,8 @@
+// The year timeline shown for a selected country in the History tab: one circle per year
+// or period, on a line that bends to the next row when it is full (no sideways scrolling).
+
 import { useLayoutEffect, useRef, useState } from 'react'
-import { formatYear, formatEra } from './api'
+import { formatYear, formatEra } from './data'
 
 // Each year/period gets its own colour, cycling through this list.
 const COLORS = ['#14b8a6', '#f59e0b', '#ec4899', '#3b82f6', '#84cc16', '#a78bfa', '#f97316', '#06b6d4']

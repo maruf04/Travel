@@ -1,13 +1,30 @@
+// Entry point: loads the styles and shows the right page for the address.
+//   #/           the map (App.jsx)
+//   #/edit       sign in, then the edit page (Admin.jsx); #/edit?video=ID opens one video
+//   #/reset      choose a new password (from the email link; ResetPassword in auth.jsx)
+//
+// Where things are:
+//   App.jsx          the public map page: topic tabs, channels, timeline, map, sidebar
+//   Admin.jsx        the edit page (videos, topics, channels, members, profile, account)
+//   MapView.jsx      the map itself (markers, country shading, video player)
+//   Timeline.jsx     the bending year timeline (History tab)
+//   CountryPanel.jsx sidebar list and Wikipedia info for a selected country
+//   layout.jsx       banner (header) and footer
+//   auth.jsx         sign-in, reset-password and account screens
+//   pickers.jsx      colour and emoji pop-ups (edit page)
+//   data.js          loading data (JSON files + database), countries, small helpers
+//   hooks.js         shared React hooks (sign-in state, theme, map selection, pop-ups)
+//   content.js       your details for the footer, contributor links
+//   styles.css       all styles
+
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import 'leaflet/dist/leaflet.css'
-import './index.css'
-import './admin.css'
-import './site.css'
+import './styles.css'
 import App from './App.jsx'
 import Admin from './Admin.jsx'
-import ResetPassword from './ResetPassword.jsx'
-import { parseRoute } from './authHelpers'
+import { ResetPassword } from './auth'
+import { parseRoute } from './data'
 
 // Pages:  #/edit (sign in + edit)   #/edit?video=ID (edit one video)   #/reset (choose a new password)
 function Root() {
