@@ -261,8 +261,7 @@ export default function App() {
             <div className="empty-note">
               <h2>No {topicName.toLowerCase()} videos yet</h2>
               <p className="muted">
-                Add a playlist with <code>npm run add -- &lt;playlist url&gt; --category {topic}</code>, or from the
-                “Add videos” action on GitHub. See the README.
+                Videos can be added on the <a href="#/edit">edit page</a> (log in, then “Add video”).
               </p>
             </div>
           ) : (

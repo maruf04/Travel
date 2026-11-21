@@ -2,8 +2,8 @@
 //   1. Database connection   the Supabase client (null when the site runs without a database)
 //   2. Countries             ISO codes <-> names, flags, and the special "Earth" country
 //   3. Country centres       a pin position for a country (centre of its largest land piece)
-//   4. Database reads        corrections, videos, channels and topics added on the edit page
-//   5. Loading videos        the JSON files in public/data, merged with the database
+//   4. Database reads        reading whole tables, and corrections made on the edit page
+//   5. Loading data          topics, channels and videos from the database, country borders
 //   6. Map grouping          videos -> countries -> cities, for the map markers
 //   7. Sign-in helpers       username rules, page addresses, friendly error messages
 
@@ -20,7 +20,7 @@ const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
 // "pkce" makes email links (password reset, email confirmation) come back as ?code=... instead of
 // putting login details after the "#", which this site already uses for its pages (#/edit, #/reset).
-// null when the variables are missing, so the public site still works from the JSON files.
+// null when the variables are missing; the pages then show an error saying the database isn't set up.
 export const supabase = url && key ? createClient(url, key, { auth: { flowType: 'pkce' } }) : null
 
 // When someone opens the "reset password" link from their email, show the "choose a new password" page.
@@ -35,7 +35,7 @@ if (supabase) {
 // 2. Countries   (was src/countries.js)
 // ────────────────────────────────────────────────────────────────────────────
 
-// Countries are stored as ISO codes ("TR", "BD") in the data files.
+// Countries are stored as ISO codes ("TR", "BD") in the database.
 // Names come from the browser; a few are shortened or kept the way the site has always shown them.
 const NAME_OVERRIDES = {
   TR: 'Türkiye', AE: 'UAE', US: 'USA', MK: 'North Macedonia', GB: 'United Kingdom',
@@ -140,16 +140,30 @@ export function countryCenter(world, code) {
 // 4. Database reads   (was src/overrides.js)
 // ────────────────────────────────────────────────────────────────────────────
 
-// Everything here reads the Supabase database. None of it ever throws: if the database
-// can't be reached the site simply shows the JSON files in public/data.
+// All topics, channels and videos live in the Supabase database (tables: categories,
+// channels, channels_extra, videos, video_overrides). Only the country borders are a file.
+
+// Reads every row of a table. Supabase returns at most 1000 rows per request,
+// so bigger tables are read in pages of 1000.
+async function readAll(table, order) {
+  if (!supabase) throw new Error('The database is not set up: add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to .env.local')
+  const rows = []
+  for (let from = 0; ; from += 1000) {
+    let query = supabase.from(table).select('*').range(from, from + 999)
+    if (order) query = query.order(order)
+    const { data, error } = await query
+    if (error) throw new Error(`Could not load ${table}: ${error.message}`)
+    rows.push(...data)
+    if (data.length < 1000) return rows
+  }
+}
 
 // Corrections made on the edit page: video id -> { countries, place_name, lat, lng }.
+// Optional: if they can't be loaded, the videos are shown without them.
 export async function getOverrides() {
   if (!supabase) return new Map()
   try {
-    const { data, error } = await supabase.from('video_overrides').select('*')
-    if (error) throw error
-    return new Map(data.map((o) => [o.video_id, o]))
+    return new Map((await readAll('video_overrides')).map((o) => [o.video_id, o]))
   } catch (e) {
     console.warn('Could not load corrections:', e.message)
     return new Map()
@@ -171,13 +185,65 @@ export function applyOverride(video, override) {
   }
 }
 
-// Videos added on the edit page, in the same shape as the videos in the JSON files.
-export async function getDbVideos() {
-  if (!supabase) return []
-  try {
-    const { data, error } = await supabase.from('videos').select('*').limit(5000)
-    if (error) throw error
-    return data.map((r) => ({
+// ────────────────────────────────────────────────────────────────────────────
+// 5. Loading data   (was src/api.js)
+// ────────────────────────────────────────────────────────────────────────────
+
+// Topics in tab order. Admins can delete any of them on the edit page.
+export async function getCategories() {
+  return (await readAll('categories', 'sort')).map((c) => ({
+    id: c.id,
+    name: c.name,
+    icon: c.icon || '📌',
+    color: c.color || '#4ba3f0',
+    added: true,
+  }))
+}
+
+// Channels: the "channels" table (with logos), plus the ones added on the edit page ("channels_extra").
+// A channel can be in both: then what was saved on the edit page (name, country, link) wins,
+// because the Channels tab of the edit page saves into channels_extra; the logo comes from "channels".
+export async function getChannels() {
+  const [main, extra] = await Promise.all([readAll('channels'), readAll('channels_extra')])
+  const edited = new Map(extra.map((c) => [c.id, c]))
+  const tidy = (c, e = {}) => ({
+    id: c.id,
+    name: e.name || c.name,
+    country: e.country || c.country || undefined,
+    url: e.url || c.url || undefined,
+    logo: c.logo || undefined,
+    logoCredit: c.logo_credit || undefined,
+  })
+  const ids = new Set(main.map((c) => c.id))
+  return [...main.map((c) => tidy(c, edited.get(c.id))), ...extra.filter((c) => !ids.has(c.id)).map((c) => tidy(c))]
+}
+
+// Country borders (Natural Earth, public domain) for shading and country-centre pins.
+// This is the one data file left in public/data; it's fetched once.
+let world = null
+export function getWorld() {
+  if (!world) {
+    world = fetch(import.meta.env.BASE_URL + 'data/world.json').then((res) => {
+      if (!res.ok) throw new Error(`Could not load the country borders (${res.status})`)
+      return res.json()
+    })
+    world.catch(() => (world = null)) // allow a retry after a failed request
+  }
+  return world
+}
+
+// Videos of the given topics, with saved corrections applied and a few fields the UI uses.
+//   added: true for videos added on the edit page (they have "added_by"); false for the
+//          original videos that were imported into the database
+export async function getVideos(categoryIds) {
+  const [rows, overrides, borders] = await Promise.all([
+    readAll('videos'),
+    getOverrides(),
+    getWorld().catch(() => null), // only needed for country-centre pins
+  ])
+  return rows
+    .filter((r) => (r.categories || []).some((c) => categoryIds.includes(c)))
+    .map((r) => ({
       id: r.id,
       channel: r.channel,
       title: r.title,
@@ -185,100 +251,15 @@ export async function getDbVideos() {
       countries: r.countries || [],
       ...(r.lat != null && r.lng != null ? { place: { name: r.place_name || '', lat: r.lat, lng: r.lng } } : {}),
       ...(r.era_from != null ? { era: { from: r.era_from, to: r.era_to ?? r.era_from } } : {}),
-      added: true,
+      added: Boolean(r.added_by),
     }))
-  } catch (e) {
-    console.warn('Could not load added videos:', e.message)
-    return []
-  }
-}
-
-// Channels added on the edit page (for videos from a YouTuber that isn't in channels.json).
-export async function getDbChannels() {
-  if (!supabase) return []
-  try {
-    const { data, error } = await supabase.from('channels_extra').select('*')
-    if (error) throw error
-    return data.map((c) => ({ id: c.id, name: c.name, country: c.country || undefined, url: c.url || undefined }))
-  } catch (e) {
-    console.warn('Could not load added channels:', e.message)
-    return []
-  }
-}
-
-// Topics (categories) added on the edit page, in tab order.
-export async function getDbCategories() {
-  if (!supabase) return []
-  try {
-    const { data, error } = await supabase.from('categories').select('*').order('sort')
-    if (error) throw error
-    return data.map((c) => ({ id: c.id, name: c.name, icon: c.icon || '📌', color: c.color || '#4ba3f0', added: true }))
-  } catch (e) {
-    console.warn('Could not load added topics:', e.message)
-    return []
-  }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// 5. Loading videos   (was src/api.js)
-// ────────────────────────────────────────────────────────────────────────────
-
-// All data lives in public/data/ as static JSON, so GitHub Pages can serve it:
-//   categories.json        topics (travel, history, ...) with colour and icon
-//   channels.json          YouTube channels
-//   videos/<category>.json videos whose main topic is that category
-//   world.json             country borders (Natural Earth, public domain) for shading
-// A video's `categories` may list several topics; it is stored in the file of the first one.
-const BASE = import.meta.env.BASE_URL + 'data/'
-
-const cache = new Map()
-function get(path) {
-  if (!cache.has(path)) {
-    const p = fetch(BASE + path).then((res) => {
-      if (!res.ok) throw new Error(`Could not load ${path} (${res.status})`)
-      return res.json()
-    })
-    p.catch(() => cache.delete(path)) // allow a retry after a failed request
-    cache.set(path, p)
-  }
-  return cache.get(path)
-}
-
-// categories.json plus topics added on the edit page (the data files win if an id is in both)
-export async function getCategories() {
-  const [json, extra] = await Promise.all([get('categories.json'), getDbCategories()])
-  const ids = new Set(json.map((c) => c.id))
-  return [...json, ...extra.filter((c) => !ids.has(c.id))]
-}
-// channels.json plus any channels added on the edit page
-export async function getChannels() {
-  const [json, extra] = await Promise.all([get('channels.json'), getDbChannels()])
-  const ids = new Set(json.map((c) => c.id))
-  return [...json, ...extra.filter((c) => !ids.has(c.id))]
-}
-export const getWorld = () => get('world.json')
-
-// Loads the JSON category files, adds the videos added on the edit page, applies saved
-// corrections, and adds a few derived fields used by the UI.
-export async function getVideos(categoryIds) {
-  const [lists, overrides, dbVideos, world] = await Promise.all([
-    // a topic added on the edit page has no JSON file, so a missing file just means no videos from it
-    Promise.all(categoryIds.map((id) => get(`videos/${id}.json`).catch(() => []))),
-    getOverrides(),
-    getDbVideos(),
-    getWorld().catch(() => null),
-  ])
-  const added = dbVideos.filter((v) => v.categories.some((c) => categoryIds.includes(c)))
-  const seen = new Set()
-  return [...lists.flat(), ...added]
-    .filter((v) => !seen.has(v.id) && seen.add(v.id))
     .map((v) => applyOverride(v, overrides.get(v.id)))
     .map((v) => {
       const countries = v.countries || []
       let place = v.place
       // corrected/added videos without an exact place get a pin at the centre of their first country
       if (!place && (v.edited || v.added) && countries[0] && countries[0] !== EARTH) {
-        const c = countryCenter(world, countries[0])
+        const c = countryCenter(borders, countries[0])
         if (c) place = { name: countryName(countries[0]), lat: c[0], lng: c[1] }
       }
       return {
@@ -308,7 +289,7 @@ export function toStops(videos, colorOf) {
     }))
 }
 
-// A channel's logo: "logo" in channels.json is a file under public/ (e.g. "logos/veritasium.png")
+// A channel's logo: "logo" in the channels table is a file under public/ (e.g. "logos/veritasium.png")
 // or a full https:// URL. Returns null when the channel has none.
 export function channelLogo(channel) {
   if (!channel?.logo) return null

@@ -1,7 +1,7 @@
 // The edit page (#/edit). After signing in, members can correct or add videos and edit their
 // profile; admins can also manage topics and approve or decline new members.
 // Tabs: Videos · Add video · Channels · Profile · Account · Topics (admin) · Members (admin).
-// Changes are saved in the Supabase database; the map shows them on top of the JSON files.
+// Changes are saved in the Supabase database, which is where the map reads everything from.
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase, getCategories, getChannels, getVideos, countryName, flagUrl, EARTH, EARTH_NAME } from './data'
@@ -369,8 +369,8 @@ function CategoriesPanel({ categories, onChanged }) {
       <div className="a-list">
         {categories.map((c) => (
           <div key={c.id} className="a-row a-member">
-            <span><span style={{ color: c.color }}>●</span> {c.icon} {c.name}{c.added ? '' : ' · from the data files'}</span>
-            {c.added && <button className="a-btn danger" onClick={() => remove(c)}>Delete</button>}
+            <span><span style={{ color: c.color }}>●</span> {c.icon} {c.name}</span>
+            <button className="a-btn danger" onClick={() => remove(c)}>Delete</button>
           </div>
         ))}
       </div>
@@ -425,7 +425,7 @@ function ChannelsPanel() {
   return (
     <section className="panel">
       <h2>Channels added here ({rows.length})</h2>
-      <p className="muted">Set each channel's home country. Channels from the original data files can't be changed on this page yet.</p>
+      <p className="muted">Set each channel's home country. The original channels (imported into the database) can't be changed on this page yet.</p>
       {error && <p className="error">{error}</p>}
       <div className="a-list">
         {rows.map((r) => <ChannelRow key={r.id + (r.country || '')} row={r} onSave={save} saved={saved === r.id} />)}

@@ -12,7 +12,7 @@
 //   layout.jsx       banner (header) and footer
 //   auth.jsx         sign-in, reset-password and account screens
 //   pickers.jsx      colour and emoji pop-ups (edit page)
-//   data.js          loading data (JSON files + database), countries, small helpers
+//   data.js          loading data from the database, countries, small helpers
 //   hooks.js         shared React hooks (sign-in state, theme, map selection, pop-ups)
 //   content.js       your details for the footer, contributor links
 //   styles.css       all styles

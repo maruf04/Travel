@@ -93,7 +93,7 @@ create table if not exists channels_extra (
 
 create table if not exists videos (
   id text primary key,                       -- the YouTube video ID
-  channel text not null,                     -- a channel id (channels.json or channels_extra)
+  channel text not null,                     -- a channel id (channels or channels_extra)
   title text not null,
   categories text[] not null default '{}',   -- e.g. {travel,culture}
   countries text[] not null default '{}',    -- ISO codes, or EARTH
